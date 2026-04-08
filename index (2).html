@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>GameTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:#0a0a0f;overflow-x:hidden}
+    #root{height:100%}
+    input,select,textarea{outline:none}
+    button{cursor:pointer;border:none;background:none}
+    video{display:block}
+    ::-webkit-scrollbar{width:3px}
+    ::-webkit-scrollbar-thumb{background:#333350;border-radius:2px}
+    input::placeholder,textarea::placeholder{color:#404058}
+    select option{background:#1c1c28;color:#eeeef5}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+    .su{animation:slideUp 0.25s ease both}
+    .fi{animation:fadeIn 0.2s ease both}
+    .gc:active{opacity:0.82;transform:scale(0.99)}
+
+    /* ── html5-qrcode overrides ── */
+    #gt-scan-div { width:100%; height:100%; }
+    #gt-scan-div video { width:100%!important; height:100%!important; object-fit:cover!important; }
+    #gt-scan-div img { display:none!important; }
+    #gt-scan-div canvas { display:none!important; }
+    /* Hide the library's default UI elements */
+    #gt-scan-div > div:first-child { display:none!important; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ══════ ICONS ══════ */
+const Svg=({c,size=18,style})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style} dangerouslySetInnerHTML={{__html:c}}/>;
+const Plus=p=><Svg {...p} c="<path d='M12 5v14M5 12h14'/>"/>;
+const Search=p=><Svg {...p} c="<circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/>"/>;
+const ArrowLeft=p=><Svg {...p} c="<path d='m12 19-7-7 7-7M19 12H5'/>"/>;
+const Loader=p=><Svg {...p} c="<path d='M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83'/>"/>;
+const Trash2=p=><Svg {...p} c="<path d='M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'/><path d='M10 11v6M14 11v6'/>"/>;
+const Download=p=><Svg {...p} c="<path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3'/>"/>;
+const Camera=p=><Svg {...p} c="<path d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/><circle cx='12' cy='13' r='4'/>"/>;
+const X=p=><Svg {...p} c="<path d='M18 6 6 18M6 6l12 12'/>"/>;
+const Check=p=><Svg {...p} c="<path d='M20 6 9 17l-5-5'/>"/>;
+const Home=p=><Svg {...p} c="<path d='m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><path d='M9 22V12h6v10'/>"/>;
+const List=p=><Svg {...p} c="<path d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'/>"/>;
+const Layers=p=><Svg {...p} c="<path d='m12 2 10 6.5v7L12 22 2 15.5v-7L12 2z'/><path d='M12 22v-6.5'/><path d='m22 8.5-10 7-10-7'/>"/>;
+const Edit3=p=><Svg {...p} c="<path d='M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z'/>"/>;
+const TrendingUp=p=><Svg {...p} c="<path d='M22 7 13.5 15.5l-5-5L2 17'/><path d='M16 7h6v6'/>"/>;
+const UserPlus=p=><Svg {...p} c="<path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><line x1='19' y1='8' x2='19' y2='14'/><line x1='22' y1='11' x2='16' y2='11'/>"/>;
+const MinusCircle=p=><Svg {...p} c="<circle cx='12' cy='12' r='10'/><line x1='8' y1='12' x2='16' y2='12'/>"/>;
+const Zap=p=><Svg {...p} c="<polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/>"/>;
+
+/* ══════ CONSTANTS ══════ */
+const PLATFORMS=['PS5','PS4','PS3','PS2','Xbox Series','Xbox One','Xbox 360','Switch','Wii U','Wii','3DS','DS','GBA','PC','Autre'];
+const CONDITIONS=['Neuf','Très bon état','Bon état','Correct','Mauvais état'];
+const STATUSES=['En stock','Vendu','Réservé'];
+const PLAT_COLORS={'PS5':'#003791','PS4':'#003791','PS3':'#003791','PS2':'#003791','Xbox Series':'#107C10','Xbox One':'#107C10','Xbox 360':'#107C10','Switch':'#E4000F','Wii':'#aaaaaa','Wii U':'#009AC7','3DS':'#CC0000','DS':'#CC0000','GBA':'#720E9E','PC':'#1B2838'};
+const C={bg:'#0a0a0f',card:'#13131a',card2:'#1c1c28',border:'#252538',acc:'#f5a623',acc2:'rgba(245,166,35,0.13)',green:'#22c55e',red:'#ef4444',blue:'#3b82f6',muted:'#6b7280',text:'#eeeef5'};
+
+/* ══════ HELPERS ══════ */
+const fmt=v=>`${parseFloat(v||0).toFixed(2)} €`;
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+const ts=()=>Date.now();
+function calcGameProfit(g){const s=parseFloat(g.prixVente||0),b=parseFloat(g.prixAchat||0),sh=parseFloat(g.fraisPort||0),fee=s*parseFloat(g.tauxFrais||0)/100;return s-b-sh-fee;}
+function calcLotProfit(lot){const s=parseFloat(lot.prixVente||0),b=parseFloat(lot.prixAchat||0),sh=parseFloat(lot.fraisPort||0),fee=s*parseFloat(lot.tauxFrais||0)/100;return s-b-sh-fee;}
+
+function detectPlat(t=''){
+  const l=t.toLowerCase();
+  const map=[
+    ['playstation 5','PS5'],['ps5','PS5'],
+    ['playstation 4','PS4'],['ps4','PS4'],
+    ['playstation 3','PS3'],['ps3','PS3'],
+    ['playstation 2','PS2'],['ps2','PS2'],
+    ['xbox series','Xbox Series'],['xbox one','Xbox One'],['xbox 360','Xbox 360'],['xbox','Xbox One'],
+    ['nintendo switch','Switch'],['switch','Switch'],
+    ['wii u','Wii U'],['wii','Wii'],
+    ['nintendo 3ds','3DS'],['3ds','3DS'],
+    ['nintendo ds','DS'],[' ds ','DS'],
+    ['game boy advance','GBA'],['gba','GBA'],
+    ['pc ','PC'],['windows','PC'],['steam','PC'],
+  ];
+  for(const[k,v]of map)if(l.includes(k))return v;
+  return '';
+}
+
+/* ══════ STORAGE ══════ */
+const SK='gametrack-v4';
+function loadData(){try{const d=localStorage.getItem(SK);return d?JSON.parse(d):{games:[],lots:[]}}catch{return{games:[],lots:[]}}}
+function saveData(d){try{localStorage.setItem(SK,JSON.stringify(d))}catch{}}
+
+/* ══════ BARCODE LOOKUP — multi-sources ══════ */
+async function upcLookup(code) {
+  // Source 1: UPC Item DB
+  try {
+    const r = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.items?.[0]) {
+        const i = d.items[0];
+        const title = i.title || '';
+        if (title) return { title, platform: detectPlat(title), image: i.images?.[0] || '' };
+      }
+    }
+  } catch {}
+
+  // Source 2: Open Food Facts (has some games/entertainment)
+  try {
+    const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.status === 1 && d.product?.product_name) {
+        const title = d.product.product_name;
+        return { title, platform: detectPlat(title), image: d.product.image_url || '' };
+      }
+    }
+  } catch {}
+
+  // Source 3: Open Library (for cases where the EAN is also an ISBN)
+  try {
+    const r = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${code}&format=json&jscmd=data`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const d = await r.json();
+      const key = `ISBN:${code}`;
+      if (d[key]) return { title: d[key].title || '', platform: '', image: d[key].cover?.medium || '' };
+    }
+  } catch {}
+
+  return null;
+}
+
+/* ══════ CSV ══════ */
+function exportCSV(games,lots){
+  const lm=Object.fromEntries(lots.map(l=>[l.id,l.name]));
+  const rows=[['Titre','Plateforme','État','Barcode','Achat','Vente','Port','Frais%','Bénéfice','Statut','Lot'],
+    ...games.map(g=>{const inLot=!!g.lotId;const lot=g.lotId?lots.find(l=>l.id===g.lotId):null;return[g.title,g.platform,g.condition,g.barcode,inLot?'(lot)':g.prixAchat,inLot?'(lot)':g.prixVente,inLot?'(lot)':g.fraisPort,inLot?'(lot)':g.tauxFrais,inLot?'voir lot':calcGameProfit(g).toFixed(2),inLot?'En lot':g.status,g.lotId?lm[g.lotId]:'']})]
+  ;
+  const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+  Object.assign(document.createElement('a'),{href:url,download:'gametrack.csv'}).click();URL.revokeObjectURL(url);
+}
+
+/* ══════ SHARED UI ══════ */
+const INP={width:'100%',background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit,sans-serif',fontSize:15};
+const Inp=({value,onChange,placeholder,type='text',mono,...p})=><input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} type={type} style={{...INP,fontFamily:mono?'"JetBrains Mono",monospace':'Outfit,sans-serif'}} {...p}/>;
+const Sel=({value,onChange,children})=><select value={value} onChange={e=>onChange(e.target.value)} style={{...INP,appearance:'none',color:value?C.text:C.muted,backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,backgroundRepeat:'no-repeat',backgroundPosition:'right 12px center'}}>{children}</select>;
+const Lbl=({ch})=><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6,letterSpacing:0.5,fontWeight:500}}>{ch}</div>;
+const Gap=({h=14})=><div style={{height:h}}/>;
+function Toast({msg,type='info'}){
+  if(!msg)return null;
+  const bg=type==='ok'?C.green:type==='err'?C.red:C.acc;
+  return <div className="fi" style={{position:'fixed',top:24,left:'50%',transform:'translateX(-50%)',background:C.card2,border:`1px solid ${bg}60`,borderRadius:12,padding:'10px 20px',fontFamily:'Outfit',fontSize:14,color:C.text,zIndex:500,boxShadow:'0 8px 32px rgba(0,0,0,0.6)',whiteSpace:'nowrap',maxWidth:'90vw',overflow:'hidden',textOverflow:'ellipsis'}}>{msg}</div>;
+}
+
+function GameCard({game,lots=[],onClick,rightEl}){
+  const inLot=!!game.lotId;const lot=inLot?lots.find(l=>l.id===game.lotId):null;
+  const p=inLot?null:calcGameProfit(game);const pc=p==null?C.muted:p>0?C.green:p<0?C.red:C.muted;
+  const platC=PLAT_COLORS[game.platform]||'#444';const stC={'Vendu':C.green,'Réservé':C.blue,'En stock':'#555'};
+  return(
+    <div onClick={onClick} className="gc" style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:'13px 14px 13px 18px',marginBottom:10,cursor:onClick?'pointer':'default',display:'flex',alignItems:'center',gap:12,position:'relative',overflow:'hidden'}}>
+      <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:platC,borderRadius:'14px 0 0 14px'}}/>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:15,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{game.title||<span style={{color:C.muted,fontStyle:'italic'}}>Sans titre</span>}</div>
+        <div style={{display:'flex',gap:8,marginTop:4,alignItems:'center',flexWrap:'wrap'}}>
+          {game.platform&&<span style={{fontSize:11,color:C.muted}}>{game.platform}</span>}
+          {game.condition&&<span style={{fontSize:11,color:C.muted}}>· {game.condition}</span>}
+          {!inLot&&game.status&&<span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:`${stC[game.status]||'#555'}20`,color:stC[game.status]||C.muted,fontWeight:500}}>{game.status}</span>}
+          {inLot&&lot&&<span style={{fontSize:11,color:C.acc}}>📦 {lot.name}</span>}
+        </div>
+      </div>
+      {rightEl||<div style={{textAlign:'right',flexShrink:0}}>
+        {inLot?<div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,fontStyle:'italic'}}>Prix au lot</div>
+          :<><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:2}}>{fmt(game.prixAchat)}→{fmt(game.prixVente)}</div></>}
+      </div>}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   BARCODE SCANNER — html5-qrcode based
+══════════════════════════════════════════ */
+function Scanner({ onDetect, onClose }) {
+  const [status, setStatus] = useState('starting'); // starting | scanning | error
+  const [manual, setManual] = useState('');
+  const [detected, setDetected] = useState('');
+  const scannerRef = useRef(null);
+  const doneRef = useRef(false);
+
+  useEffect(() => {
+    // Small delay to ensure the div is mounted
+    const timer = setTimeout(async () => {
+      try {
+        const scanner = new Html5Qrcode('gt-scan-div', { verbose: false });
+        scannerRef.current = scanner;
+
+        const qrboxSize = {
+          width: Math.min(window.innerWidth - 80, 300),
+          height: 130,
+        };
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 15, qrbox: qrboxSize },
+          (text) => {
+            if (doneRef.current) return;
+            doneRef.current = true;
+            setDetected(text);
+            scanner.stop().catch(() => {}).finally(() => onDetect(text));
+          },
+          () => {} // per-frame errors are normal, ignore
+        );
+        setStatus('scanning');
+      } catch (err) {
+        console.error('Scanner error:', err);
+        setStatus('error');
+      }
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
+      }
+    };
+  }, []);
+
+  function handleClose() {
+    if (scannerRef.current) scannerRef.current.stop().catch(() => {});
+    onClose();
+  }
+
+  function handleManual() {
+    if (!manual.trim()) return;
+    if (scannerRef.current) scannerRef.current.stop().catch(() => {});
+    onDetect(manual.trim());
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 300, display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(10,10,15,0.95)', borderBottom: '1px solid #1a1a2e', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne,sans-serif', fontSize: 20, fontWeight: 800, color: C.text }}>Scanner un jeu</div>
+        <button onClick={handleClose} style={{ color: C.muted, padding: 6, display:'flex', alignItems:'center' }}><X size={22} /></button>
+      </div>
+
+      {/* Video area */}
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#000' }}>
+        {/* html5-qrcode renders into this div */}
+        <div id="gt-scan-div" style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />
+
+        {/* Loading overlay */}
+        {status === 'starting' && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#000', zIndex: 2 }}>
+            <Loader size={40} style={{ color: C.acc, animation: 'spin 1s linear infinite', marginBottom: 16 }} />
+            <div style={{ fontFamily: 'Outfit', fontSize: 14, color: C.muted }}>Démarrage de la caméra...</div>
+          </div>
+        )}
+
+        {/* Error overlay */}
+        {status === 'error' && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, background: '#000', zIndex: 2 }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>📷</div>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 600, fontSize: 16, color: C.text, textAlign: 'center', marginBottom: 10 }}>Caméra inaccessible</div>
+            <div style={{ fontFamily: 'Outfit', fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 1.6 }}>
+              Vérifiez que Chrome a bien accès à la caméra dans les paramètres Android.{'\n'}Utilisez la saisie manuelle ci-dessous.
+            </div>
+          </div>
+        )}
+
+        {/* Custom scan frame overlay (shown when scanning) */}
+        {status === 'scanning' && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 3 }}>
+            {/* Dark overlay around frame */}
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
+            {/* Frame */}
+            <div style={{ position: 'relative', width: Math.min(window.innerWidth - 80, 300), height: 130, zIndex: 1 }}>
+              {/* Clear area */}
+              <div style={{ position: 'absolute', inset: 0, background: 'transparent', border: 'none' }} />
+              {/* Corners */}
+              {[['top:0,left:0','borderTop,borderLeft','5px 0 0 0'],['top:0,right:0','borderTop,borderRight','0 5px 0 0'],['bottom:0,left:0','borderBottom,borderLeft','0 0 0 5px'],['bottom:0,right:0','borderBottom,borderRight','0 0 5px 0']].map(([pos,borders,radius],i)=>{
+                const s={position:'absolute',width:28,height:28,borderRadius:radius};
+                pos.split(',').forEach(p=>{const[k,v]=p.split(':');s[k]=parseInt(v)||0});
+                borders.split(',').forEach(b=>{s[b]=`3px solid ${C.acc}`});
+                return <div key={i} style={s}/>;
+              })}
+              {/* Animated scan line */}
+              <div style={{
+                position: 'absolute', left: 8, right: 8, height: 2, borderRadius: 2,
+                background: `linear-gradient(90deg, transparent, ${C.acc}, transparent)`,
+                boxShadow: `0 0 12px ${C.acc}`,
+                animation: 'scanline 2s ease-in-out infinite',
+                top: '50%',
+              }} />
+            </div>
+            <div style={{ position: 'absolute', bottom: 24, fontFamily: 'Outfit', fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '0 20px' }}>
+              Pointez le code-barre du jeu dans le cadre
+            </div>
+          </div>
+        )}
+
+        {/* Detected flash */}
+        {detected && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(34,197,94,0.2)', zIndex: 10 }}>
+            <div style={{ background: C.green, borderRadius: '50%', width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Check size={32} style={{ color: '#fff' }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Manual input */}
+      <div style={{ padding: '16px 20px 32px', background: 'rgba(10,10,15,0.98)', borderTop: '1px solid #1a1a2e', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Outfit', fontSize: 11, color: C.muted, marginBottom: 10, letterSpacing: 0.5, fontWeight: 500 }}>SAISIE MANUELLE DU CODE-BARRE</div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <input
+            value={manual} onChange={e => setManual(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleManual()}
+            placeholder="Ex: 3307216146735"
+            inputMode="numeric"
+            style={{ flex: 1, background: '#1a1a28', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', color: C.text, fontFamily: '"JetBrains Mono",monospace', fontSize: 15, outline: 'none' }}
+          />
+          <button onClick={handleManual} style={{ background: C.acc, borderRadius: 10, padding: '12px 20px', color: '#000', fontFamily: 'Outfit', fontWeight: 700, fontSize: 15 }}>OK</button>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes scanline {
+          0%   { top: 10%; }
+          50%  { top: 80%; }
+          100% { top: 10%; }
+        }
+        /* Force the html5-qrcode video to fill properly */
+        #gt-scan-div video {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+        }
+        #gt-scan-div > div { display: none !important; }
+        #qr-shaded-region { display: none !important; }
+      `}</style>
+    </div>
+  );
+}
+
+/* ══════ HOME ══════ */
+function HomeScreen({data,navigate}){
+  const {games=[],lots=[]}=data;
+  const sold=games.filter(g=>g.status==='Vendu'&&!g.lotId);
+  const totalBuy=games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixAchat||0),0)+lots.reduce((s,l)=>s+parseFloat(l.prixAchat||0),0);
+  const totalSell=sold.reduce((s,g)=>s+parseFloat(g.prixVente||0),0)+lots.filter(l=>l.status==='Vendu').reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
+  const totalProfit=sold.reduce((s,g)=>s+calcGameProfit(g),0)+lots.filter(l=>l.status==='Vendu').reduce((s,l)=>s+calcLotProfit(l),0);
+  const inStock=games.filter(g=>g.status!=='Vendu'&&!g.lotId).length;
+  const recent=[...games].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,5);
+  const stats=[{label:'INVESTI',val:fmt(totalBuy)},{label:'EN STOCK',val:`${inStock} jeux`},{label:'REVENUS',val:fmt(totalSell)},{label:'BÉNÉFICE',val:fmt(totalProfit),col:totalProfit>=0?C.green:C.red}];
+  return(
+    <div style={{paddingBottom:90}} className="su">
+      <div style={{padding:'40px 20px 24px',background:`linear-gradient(170deg,${C.card} 0%,${C.bg} 100%)`}}>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+          <div><div style={{fontFamily:'Syne,sans-serif',fontSize:32,fontWeight:800,color:C.text,letterSpacing:-0.5}}>GameTrack</div><div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>Suivi revente jeux vidéo</div></div>
+          <div style={{background:C.acc2,border:`1px solid ${C.acc}40`,borderRadius:14,padding:'8px 14px',display:'flex',alignItems:'center',gap:6}}><TrendingUp size={16} style={{color:C.acc}}/><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:C.acc}}>{sold.length} vendus</span></div>
+        </div>
+      </div>
+      <div style={{padding:'0 16px 20px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        {stats.map(({label,val,col})=>(
+          <div key={label} style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:14,padding:'14px 16px'}}>
+            <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,letterSpacing:0.8,marginBottom:7,fontWeight:500}}>{label}</div>
+            <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:19,fontWeight:600,color:col||C.text}}>{val}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{padding:'0 16px'}}>
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:17,fontWeight:700,color:C.text,marginBottom:12}}>Ajoutés récemment</div>
+        {recent.length===0?<div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Aucun jeu · Commencez par en ajouter un 🎮</div>:recent.map(g=><GameCard key={g.id} game={g} lots={lots} onClick={()=>navigate('gameDetail',g.id)}/>)}
+      </div>
+    </div>
+  );
+}
+
+/* ══════ INVENTORY ══════ */
+function InventoryScreen({data,navigate}){
+  const {games=[],lots=[]}=data;const [q,setQ]=useState('');const [sf,setSf]=useState('');const [pf,setPf]=useState('');
+  const filtered=games.filter(g=>{
+    if(q&&!g.title?.toLowerCase().includes(q.toLowerCase())&&!(g.platform||'').toLowerCase().includes(q.toLowerCase()))return false;
+    if(sf==='En lot'&&!g.lotId)return false;
+    if(sf&&sf!=='En lot'&&(g.lotId||g.status!==sf))return false;
+    if(pf&&g.platform!==pf)return false;return true;
+  }).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const platforms=[...new Set(games.map(g=>g.platform).filter(Boolean))];
+  return(
+    <div style={{paddingBottom:90}} className="su">
+      <div style={{padding:'28px 16px 14px',background:`linear-gradient(170deg,${C.card} 0%,${C.bg} 100%)`}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+          <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Inventaire</div>
+          <button onClick={()=>exportCSV(games,lots)} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,border:`1px solid ${C.border}`,borderRadius:9,padding:'6px 12px',background:C.card2}}><Download size={14}/> CSV</button>
+        </div>
+        <div style={{position:'relative',marginBottom:10}}>
+          <Search size={15} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:C.muted}}/>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher un jeu..." style={{width:'100%',background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:'10px 14px 10px 35px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}}/>
+        </div>
+        <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:4}}>
+          {['','En stock','Vendu','Réservé','En lot'].map(s=><button key={s} onClick={()=>setSf(s)} style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontFamily:'Outfit',fontSize:12,fontWeight:500,background:sf===s?C.acc:C.card2,color:sf===s?'#000':C.muted,border:`1px solid ${sf===s?C.acc:C.border}`}}>{s||'Tous'}</button>)}
+          {platforms.map(p=><button key={p} onClick={()=>setPf(pf===p?'':p)} style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontFamily:'Outfit',fontSize:12,fontWeight:500,background:pf===p?C.acc:C.card2,color:pf===p?'#000':C.muted,border:`1px solid ${pf===p?C.acc:C.border}`}}>{p}</button>)}
+        </div>
+      </div>
+      <div style={{padding:'10px 16px'}}>
+        <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:10}}>{filtered.length} jeu{filtered.length!==1?'x':''}</div>
+        {filtered.length===0?<div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit'}}>Aucun résultat</div>:filtered.map(g=><GameCard key={g.id} game={g} lots={lots} onClick={()=>navigate('gameDetail',g.id)}/>)}
+      </div>
+    </div>
+  );
+}
+
+/* ══════ GAME FORM ══════ */
+const emptyG=()=>({id:'',barcode:'',title:'',platform:'',condition:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:'',notes:'',image:'',createdAt:ts()});
+
+function GameFormScreen({init,lots=[],onSave,onBack}){
+  const [g,setG]=useState({...emptyG(),...(init||{})});
+  const [scanning,setScanning]=useState(false);
+  const [lookupState,setLookupState]=useState('idle'); // idle | loading | found | notfound
+  const [toast,setToast]=useState({msg:'',type:'info'});
+  const upd=(k,v)=>setG(p=>({...p,[k]:v}));
+  const showToast=(msg,type='info')=>{setToast({msg,type});setTimeout(()=>setToast({msg:'',type:'info'}),3500)};
+  const inLot=!!g.lotId;
+
+  async function handleCode(code){
+    setScanning(false);
+    upd('barcode',code);
+    setLookupState('loading');
+    showToast('🔍 Recherche du jeu en cours…','info');
+
+    const info = await upcLookup(code);
+    if(info && info.title){
+      setG(p=>({...p, barcode:code, title:info.title, platform:info.platform||p.platform, image:info.image||p.image}));
+      setLookupState('found');
+      showToast(`✅ Trouvé : ${info.title.slice(0,40)}${info.title.length>40?'…':''}`, 'ok');
+    } else {
+      setLookupState('notfound');
+      showToast('❌ Jeu non trouvé — remplissez le titre manuellement','err');
+    }
+  }
+
+  const profit=inLot?null:calcGameProfit(g);
+  const pc=profit==null?C.muted:profit>0?C.green:profit<0?C.red:C.muted;
+
+  function save(){
+    if(!g.title.trim()){showToast('⚠ Le titre est requis','err');return}
+    onSave({...g,id:g.id||uid()});
+  }
+
+  return(
+    <div style={{paddingBottom:40}} className="su">
+      {scanning&&<Scanner onDetect={handleCode} onClose={()=>setScanning(false)}/>}
+      <Toast msg={toast.msg} type={toast.type}/>
+
+      <div style={{padding:'28px 16px 20px',background:`linear-gradient(170deg,${C.card} 0%,${C.bg} 100%)`}}>
+        <button onClick={onBack} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}><ArrowLeft size={15}/> Retour</button>
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>{g.id?'Modifier':'Ajouter un jeu'}</div>
+      </div>
+
+      <div style={{padding:'0 16px'}}>
+        {/* Scan button */}
+        <button onClick={()=>setScanning(true)} style={{width:'100%',background:lookupState==='found'?`${C.green}18`:C.acc2,border:`1.5px solid ${lookupState==='found'?C.green:C.acc}60`,borderRadius:14,padding:'15px',display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginBottom:16,fontFamily:'Outfit',fontWeight:600,fontSize:15,color:lookupState==='found'?C.green:C.acc}}>
+          {lookupState==='loading'?<Loader size={18} style={{animation:'spin 1s linear infinite'}}/>:lookupState==='found'?<Check size={18}/>:<Camera size={18}/>}
+          {lookupState==='loading'?'Recherche…':lookupState==='found'?'Jeu trouvé ! (re-scanner)':'📷 Scanner le code-barre'}
+        </button>
+
+        {/* Barcode + image */}
+        {g.barcode&&(
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,background:C.card2,borderRadius:10,padding:'8px 12px'}}>
+            {g.image&&<img src={g.image} alt="" style={{width:44,height:44,borderRadius:6,objectFit:'contain',background:'#fff'}}/>}
+            <div>
+              <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Code scanné</div>
+              <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{g.barcode}</div>
+            </div>
+          </div>
+        )}
+
+        <Lbl ch="TITRE *"/>
+        <Inp value={g.title} onChange={v=>upd('title',v)} placeholder="Ex: The Last of Us Part II"/>
+        <Gap/>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+          <div>
+            <Lbl ch="PLATEFORME"/>
+            <Sel value={g.platform} onChange={v=>upd('platform',v)}>
+              <option value="">Choisir…</option>
+              {PLATFORMS.map(p=><option key={p} value={p}>{p}</option>)}
+            </Sel>
+          </div>
+          <div>
+            <Lbl ch="ÉTAT"/>
+            <Sel value={g.condition} onChange={v=>upd('condition',v)}>
+              <option value="">Choisir…</option>
+              {CONDITIONS.map(c=><option key={c} value={c}>{c}</option>)}
+            </Sel>
+          </div>
+        </div>
+
+        {/* Lot */}
+        <div style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:14,padding:16,marginBottom:14}}>
+          <Lbl ch="LOT"/>
+          <Sel value={g.lotId} onChange={v=>upd('lotId',v)}>
+            <option value="">Aucun lot (prix individuels)</option>
+            {lots.map(l=><option key={l.id} value={l.id}>📦 {l.name}</option>)}
+          </Sel>
+          {inLot&&<div style={{fontFamily:'Outfit',fontSize:12,color:C.acc,marginTop:8}}>💡 Prix gérés au niveau du lot</div>}
+        </div>
+
+        {!inLot&&(
+          <div style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:14,padding:16,marginBottom:14}}>
+            <Lbl ch="PRIX & FRAIS"/>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+              <div><Lbl ch="Achat (€)"/><Inp value={g.prixAchat} onChange={v=>upd('prixAchat',v)} placeholder="0.00" type="number" mono/></div>
+              <div><Lbl ch="Vente (€)"/><Inp value={g.prixVente} onChange={v=>upd('prixVente',v)} placeholder="0.00" type="number" mono/></div>
+              <div><Lbl ch="Port (€)"/><Inp value={g.fraisPort} onChange={v=>upd('fraisPort',v)} placeholder="0.00" type="number" mono/></div>
+              <div><Lbl ch="Frais % (eBay=13)"/><Inp value={g.tauxFrais} onChange={v=>upd('tauxFrais',v)} placeholder="0" type="number" mono/></div>
+            </div>
+            <div style={{background:C.bg,borderRadius:10,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Bénéfice estimé</span>
+              <span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:18,fontWeight:600,color:pc}}>{profit>=0?'+':''}{fmt(profit)}</span>
+            </div>
+          </div>
+        )}
+
+        {!inLot&&<div style={{marginBottom:14}}><Lbl ch="STATUT"/><Sel value={g.status} onChange={v=>upd('status',v)}>{STATUSES.map(s=><option key={s} value={s}>{s}</option>)}</Sel></div>}
+
+        <Lbl ch="NOTES"/>
+        <textarea value={g.notes} onChange={e=>upd('notes',e.target.value)} placeholder="Griffures, manquants, infos…" style={{width:'100%',background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:72,outline:'none',marginBottom:20}}/>
+
+        <button onClick={save} style={{width:'100%',background:C.acc,borderRadius:14,padding:15,fontFamily:'Outfit',fontWeight:700,fontSize:16,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+          <Check size={18}/> {g.id?'Enregistrer les modifications':'Ajouter le jeu'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════ GAME DETAIL ══════ */
+function GameDetailScreen({data,selectedId,navigate,updateData}){
+  const {games=[],lots=[]}=data;const game=games.find(g=>g.id===selectedId);
+  const [editing,setEditing]=useState(false);const [confirm,setConfirm]=useState(false);
+  if(!game)return <div style={{padding:48,textAlign:'center',color:C.muted,fontFamily:'Outfit'}}>Jeu introuvable</div>;
+  if(editing)return <GameFormScreen init={game} lots={lots} onBack={()=>setEditing(false)} onSave={g=>{updateData({...data,games:games.map(x=>x.id===g.id?g:x)});setEditing(false)}}/>;
+  const inLot=!!game.lotId;const lot=inLot?lots.find(l=>l.id===game.lotId):null;
+  const p=inLot?null:calcGameProfit(game);const pc=p==null?C.muted:p>0?C.green:p<0?C.red:C.muted;
+  const platC=PLAT_COLORS[game.platform]||'#444';
+  return(
+    <div style={{paddingBottom:40}} className="su">
+      <div style={{padding:'28px 16px 20px',background:`linear-gradient(170deg,${C.card} 0%,${C.bg} 100%)`}}>
+        <button onClick={()=>navigate('inventory')} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}><ArrowLeft size={15}/> Inventaire</button>
+        {game.platform&&<div style={{display:'inline-block',padding:'3px 10px',borderRadius:20,background:`${platC}25`,color:platC,fontFamily:'Outfit',fontSize:12,fontWeight:600,marginBottom:8}}>{game.platform}</div>}
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text,lineHeight:1.2}}>{game.title||'Sans titre'}</div>
+        {game.condition&&<div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:4}}>{game.condition}</div>}
+      </div>
+      <div style={{padding:'0 16px'}}>
+        {game.image&&<div style={{textAlign:'center',marginBottom:14}}><img src={game.image} alt="" style={{maxHeight:100,maxWidth:170,borderRadius:10,objectFit:'contain',background:'#fff',padding:4}}/></div>}
+        {inLot&&lot
+          ?<div onClick={()=>navigate('lotDetail',lot.id)} style={{background:C.acc2,border:`1px solid ${C.acc}40`,borderRadius:16,padding:'14px 16px',marginBottom:14,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:4,letterSpacing:0.5}}>DANS LE LOT</div><div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.acc}}>📦 {lot.name}</div><div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginTop:2}}>Prix gérés au niveau du lot</div></div><div style={{color:C.acc,fontSize:22}}>›</div></div>
+          :<div style={{background:`linear-gradient(135deg,${pc}18,${pc}06)`,border:`1px solid ${pc}35`,borderRadius:16,padding:'20px',marginBottom:14,textAlign:'center'}}><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6,letterSpacing:0.8}}>BÉNÉFICE NET</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:38,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div></div>
+        }
+        <div style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:14,padding:'4px 16px',marginBottom:14}}>
+          {!inLot&&[["Prix d'achat",fmt(game.prixAchat)],["Prix de vente",fmt(game.prixVente)],["Frais de port",fmt(game.fraisPort)],["Frais plateforme",`${game.tauxFrais||0}%`],["Statut",game.status]].map(([k,v])=>(
+            <div key={k} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:`1px solid ${C.border}`}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>{k}</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{v}</span></div>
+          ))}
+          {game.barcode&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0'}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Code-barre</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:12,color:C.text}}>{game.barcode}</span></div>}
+        </div>
+        {game.notes&&<div style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:14,padding:'12px 14px',marginBottom:14}}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:5}}>NOTES</div><div style={{fontFamily:'Outfit',fontSize:14,color:C.text,lineHeight:1.55}}>{game.notes}</div></div>}
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={()=>setEditing(true)} style={{flex:1,background:C.acc,borderRadius:12,padding:'13px',fontFamily:'Outfit',fontWeight:700,fontSize:15,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><Edit3 size={16}/> Modifier</button>
+          <button onClick={()=>setConfirm(true)} style={{background:`${C.red}18`,border:`1px solid ${C.red}40`,borderRadius:12,padding:'13px 16px',color:C.red}}><Trash2 size={18}/></button>
+        </div>
+        {confirm&&<div style={{marginTop:12,background:`${C.red}13`,border:`1px solid ${C.red}40`,borderRadius:12,padding:14}}><div style={{fontFamily:'Outfit',fontSize:14,color:C.text,marginBottom:12,textAlign:'center'}}>Supprimer « {game.title} » ?</div><div style={{display:'flex',gap:10}}><button onClick={()=>{updateData({...data,games:games.filter(g=>g.id!==selectedId)});navigate('inventory')}} style={{flex:1,background:C.red,borderRadius:10,padding:'10px',fontFamily:'Outfit',fontWeight:600,fontSize:14,color:'#fff'}}>Supprimer</button><button onClick={()=>setConfirm(false)} style={{flex:1,background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:'10px',fontFamily:'Outfit',fontSize:14,color:C.muted}}>Annuler</button></div></div>}
+      </div>
+    </div>
+  );
+}
+
+/* ══════ GAME PICKER ══════ */
+function GamePicker({games,selected,onToggle}){
+  if(games.length===0)return <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,textAlign:'center',padding:'16px 0'}}>Tous les jeux sont déjà dans un lot.</div>;
+  return(
+    <div style={{maxHeight:260,overflowY:'auto',display:'flex',flexDirection:'column',gap:8}}>
+      {games.map(g=>{const sel=selected.includes(g.id);const platC=PLAT_COLORS[g.platform]||'#444';return(
+        <div key={g.id} onClick={()=>onToggle(g.id)} style={{background:sel?`${C.acc}15`:C.card,border:`1px solid ${sel?C.acc:C.border}`,borderRadius:10,padding:'10px 12px',cursor:'pointer',display:'flex',alignItems:'center',gap:10}}>
+          <div style={{width:18,height:18,borderRadius:5,border:`2px solid ${sel?C.acc:C.muted}`,background:sel?C.acc:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{sel&&<Check size={12} style={{color:'#000'}}/>}</div>
+          <div style={{width:3,height:32,background:platC,borderRadius:2,flexShrink:0}}/>
+          <div style={{flex:1,minWidth:0}}><div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{g.title||'Sans titre'}</div><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>{g.platform}{g.condition?` · ${g.condition}`:''}</div></div>
+        </div>
+      );})}
+    </div>
+  );
+}
+
+/* ══════ LOTS ══════ */
+function LotsScreen({data,navigate,updateData}){
+  const {games=[],lots=[]}=data;
+  const [showForm,setShowForm]=useState(false);
+  const emptyLot=()=>({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock'});
+  const [form,setForm]=useState(emptyLot());
+  const updF=(k,v)=>setForm(p=>({...p,[k]:v}));
+  const freeGames=games.filter(g=>!g.lotId);
+  const [selected,setSelected]=useState([]);
+  const toggleSel=id=>setSelected(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+  const lotProfit=calcLotProfit(form);const lotPc=lotProfit>0?C.green:lotProfit<0?C.red:C.muted;
+
+  function saveLot(){
+    if(!form.name.trim())return;
+    const newLot={id:uid(),...form,createdAt:ts()};
+    updateData({...data,lots:[...lots,newLot],games:games.map(g=>selected.includes(g.id)?{...g,lotId:newLot.id}:g)});
+    setShowForm(false);setForm(emptyLot());setSelected([]);
+  }
+
+  return(
+    <div style={{paddingBottom:90}} className="su">
+      <div style={{padding:'28px 16px 16px',background:`linear-gradient(170deg,${C.card} 0%,${C.bg} 100%)`,display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+        <div><div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Lots</div><div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>{lots.length} lot{lots.length!==1?'s':''}</div></div>
+        <button onClick={()=>{setShowForm(v=>!v);setSelected([])}} style={{background:showForm?C.card2:C.acc,border:`1px solid ${showForm?C.border:C.acc}`,borderRadius:12,padding:'8px 14px',display:'flex',alignItems:'center',gap:8,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:showForm?C.muted:'#000'}}>
+          {showForm?<><X size={15}/> Annuler</>:<><Plus size={15}/> Nouveau lot</>}
+        </button>
+      </div>
+      {showForm&&(
+        <div className="fi" style={{margin:'0 16px 14px',background:C.card2,border:`1px solid ${C.border}`,borderRadius:14,padding:16}}>
+          <div style={{fontFamily:'Syne,sans-serif',fontSize:16,fontWeight:700,color:C.text,marginBottom:16}}>Nouveau lot</div>
+          <Lbl ch="NOM DU LOT *"/><Inp value={form.name} onChange={v=>updF('name',v)} placeholder="Ex: Lot PS4 Juillet"/><Gap/>
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:14,marginBottom:14}}>
+            <Lbl ch="PRIX DU LOT"/>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+              <div><Lbl ch="Achat total (€)"/><Inp value={form.prixAchat} onChange={v=>updF('prixAchat',v)} placeholder="0.00" type="number" mono/></div>
+              <div><Lbl ch="Vente totale (€)"/><Inp value={form.prixVente} onChange={v=>updF('prixVente',v)} placeholder="0.00" type="number" mono/></div>
+              <div><Lbl ch="Frais port (€)"/><Inp value={form.fraisPort} onChange={v=>updF('fraisPort',v)} placeholder="0.00" type="number" mono/></div>
+              <div><Lbl ch="Frais plateforme (%)"/><Inp value={form.tauxFrais} onChange={v=>updF('tauxFrais',v)} placeholder="ex: 13" type="number" mono/></div>
+            </div>
+            {(form.prixAchat||form.prixVente)&&<div style={{background:C.bg,borderRadius:10,padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Bénéfice estimé</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:lotPc}}>{lotProfit>=0?'+':''}{fmt(lotProfit)}</span></div>}
+          </div>
+          <div style={{marginBottom:14}}><Lbl ch="STATUT"/><Sel value={form.status} onChange={v=>updF('status',v)}><option value="En stock">En stock</option><option value="Vendu">Vendu</option><option value="Réservé">Réservé</option></Sel></div>
+          <Lbl ch="NOTES"/>
+          <textarea value={form.notes} onChange={e=>updF('notes',e.target.value)} placeholder="Description, plateforme de vente…" style={{width:'100%',background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:'10px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:56,outline:'none',marginBottom:14}}/>
+          <div style={{marginBottom:14}}><Lbl ch={`AJOUTER DES JEUX AU LOT ${selected.length>0?`(${selected.length} sélectionné${selected.length>1?'s':''})`:''}`}/><GamePicker games={freeGames} selected={selected} onToggle={toggleSel}/></div>
+          <button onClick={saveLot} style={{width:'100%',background:C.acc,borderRadius:10,padding:'12px',fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+            <Check size={16}/> Créer le lot{selected.length>0?` avec ${selected.length} jeu${selected.length>1?'x':''}` :''}
+          </button>
+        </div>
+      )}
+      <div style={{padding:'4px 16px'}}>
+        {lots.length===0&&!showForm&&<div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Aucun lot · Créez-en un pour grouper vos jeux 📦</div>}
+        {lots.map(lot=>{
+          const lg=games.filter(g=>g.lotId===lot.id);const p=calcLotProfit(lot);const pc=p>0?C.green:p<0?C.red:C.muted;
+          const stC={'Vendu':C.green,'Réservé':C.blue,'En stock':'#555'};
+          return(
+            <div key={lot.id} onClick={()=>navigate('lotDetail',lot.id)} className="gc" style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:'15px 16px',marginBottom:10,cursor:'pointer'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                <div><div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.text,marginBottom:3}}>📦 {lot.name}</div><div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontFamily:'Outfit',fontSize:12,color:C.muted}}>{lg.length} jeu{lg.length!==1?'x':''}</span>{lot.status&&<span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:`${stC[lot.status]||'#555'}20`,color:stC[lot.status]||C.muted,fontWeight:500}}>{lot.status}</span>}</div></div>
+                <div style={{textAlign:'right'}}><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:18,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:1}}>{fmt(lot.prixAchat)}→{fmt(lot.prixVente)}</div></div>
+              </div>
+              {lot.notes&&<div style={{fontFamily:'Outfit',fontSize:12,color:C.muted}}>{lot.notes}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ══════ LOT DETAIL ══════ */
+function LotDetailScreen({data,selectedId,navigate,updateData}){
+  const {games=[],lots=[]}=data;const lot=lots.find(l=>l.id===selectedId);
+  const [editing,setEditing]=useState(false);const [editForm,setEditForm]=useState(null);
+  const [confirm,setConfirm]=useState(false);const [showPicker,setShowPicker]=useState(false);const [pickerSel,setPickerSel]=useState([]);
+  if(!lot)return <div style={{padding:48,textAlign:'center',color:C.muted,fontFamily:'Outfit'}}>Lot introuvable</div>;
+  const lotGames=games.filter(g=>g.lotId===lot.id);const freeGames=games.filter(g=>!g.lotId);
+  const p=calcLotProfit(lot);const pc=p>0?C.green:p<0?C.red:C.muted;
+  const stC={'Vendu':C.green,'Réservé':C.blue,'En stock':'#555'};
+  function deleteLot(){updateData({...data,lots:lots.filter(l=>l.id!==selectedId),games:games.map(g=>g.lotId===selectedId?{...g,lotId:'',status:'En stock'}:g)});navigate('lots');}
+  function removeGame(gid){updateData({...data,games:games.map(g=>g.id===gid?{...g,lotId:'',status:'En stock'}:g)});}
+  function addGames(){updateData({...data,games:games.map(g=>pickerSel.includes(g.id)?{...g,lotId:selectedId}:g)});setShowPicker(false);setPickerSel([]);}
+  const togglePicker=id=>setPickerSel(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+  function startEdit(){setEditForm({name:lot.name,prixAchat:lot.prixAchat||'',prixVente:lot.prixVente||'',fraisPort:lot.fraisPort||'',tauxFrais:lot.tauxFrais||'',notes:lot.notes||'',status:lot.status||'En stock'});setEditing(true);}
+  function saveEdit(){updateData({...data,lots:lots.map(l=>l.id===selectedId?{...l,...editForm}:l)});setEditing(false);}
+  const updE=(k,v)=>setEditForm(p=>({...p,[k]:v}));
+  return(
+    <div style={{paddingBottom:40}} className="su">
+      <div style={{padding:'28px 16px 20px',background:`linear-gradient(170deg,${C.card} 0%,${C.bg} 100%)`}}>
+        <button onClick={()=>navigate('lots')} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}><ArrowLeft size={15}/> Lots</button>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+          <div><div style={{display:'inline-block',padding:'3px 10px',borderRadius:20,background:C.acc2,color:C.acc,fontFamily:'Outfit',fontSize:12,fontWeight:600,marginBottom:8}}>📦 Lot</div><div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>{lot.name}</div>{lot.status&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:`${stC[lot.status]||'#555'}25`,color:stC[lot.status]||C.muted,fontFamily:'Outfit',fontWeight:500,marginTop:6,display:'inline-block'}}>{lot.status}</span>}</div>
+          <button onClick={startEdit} style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:12,padding:'8px 12px',display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13}}><Edit3 size={14}/> Modifier</button>
+        </div>
+      </div>
+      <div style={{padding:'0 16px'}}>
+        {editing&&editForm&&(
+          <div className="fi" style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:14,padding:16,marginBottom:14}}>
+            <div style={{fontFamily:'Syne,sans-serif',fontSize:15,fontWeight:700,color:C.text,marginBottom:14}}>Modifier le lot</div>
+            <Lbl ch="NOM"/><Inp value={editForm.name} onChange={v=>updE('name',v)} placeholder="Nom du lot"/><Gap h={10}/>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+              <div><Lbl ch="Achat (€)"/><Inp value={editForm.prixAchat} onChange={v=>updE('prixAchat',v)} placeholder="0.00" type="number" mono/></div>
+              <div><Lbl ch="Vente (€)"/><Inp value={editForm.prixVente} onChange={v=>updE('prixVente',v)} placeholder="0.00" type="number" mono/></div>
+              <div><Lbl ch="Port (€)"/><Inp value={editForm.fraisPort} onChange={v=>updE('fraisPort',v)} placeholder="0.00" type="number" mono/></div>
+              <div><Lbl ch="Frais %"/><Inp value={editForm.tauxFrais} onChange={v=>updE('tauxFrais',v)} placeholder="ex: 13" type="number" mono/></div>
+            </div>
+            {(()=>{const ep=calcLotProfit(editForm);const epc=ep>0?C.green:ep<0?C.red:C.muted;return<div style={{background:C.bg,borderRadius:10,padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Bénéfice</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:epc}}>{ep>=0?'+':''}{fmt(ep)}</span></div>})()}
+            <Lbl ch="STATUT"/><Sel value={editForm.status} onChange={v=>updE('status',v)}><option value="En stock">En stock</option><option value="Vendu">Vendu</option><option value="Réservé">Réservé</option></Sel><Gap h={10}/>
+            <Lbl ch="NOTES"/><textarea value={editForm.notes} onChange={e=>updE('notes',e.target.value)} placeholder="Notes…" style={{width:'100%',background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:'9px 12px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:54,outline:'none',marginBottom:12}}/>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={saveEdit} style={{flex:1,background:C.acc,borderRadius:10,padding:'11px',fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}><Check size={15}/> Enregistrer</button>
+              <button onClick={()=>setEditing(false)} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:'11px 16px',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Annuler</button>
+            </div>
+          </div>
+        )}
+        <div style={{background:`linear-gradient(135deg,${pc}18,${pc}06)`,border:`1px solid ${pc}35`,borderRadius:16,padding:18,marginBottom:14}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+            {[['ACHAT LOT',fmt(lot.prixAchat)],['VENTE LOT',fmt(lot.prixVente)],['FRAIS PORT',fmt(lot.fraisPort)],['JEUX',''+lotGames.length]].map(([k,v])=>(
+              <div key={k}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,letterSpacing:0.5,marginBottom:4}}>{k}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:C.text}}>{v}</div></div>
+            ))}
+          </div>
+          <div style={{borderTop:`1px solid ${pc}30`,paddingTop:14,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Bénéfice net du lot</span>
+            <span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:26,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</span>
+          </div>
+        </div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <div style={{fontFamily:'Syne,sans-serif',fontSize:16,fontWeight:700,color:C.text}}>Jeux ({lotGames.length})</div>
+          <button onClick={()=>{setShowPicker(v=>!v);setPickerSel([])}} style={{background:showPicker?C.card2:C.acc2,border:`1px solid ${showPicker?C.border:C.acc}50`,borderRadius:10,padding:'6px 12px',display:'flex',alignItems:'center',gap:6,fontFamily:'Outfit',fontWeight:600,fontSize:12,color:showPicker?C.muted:C.acc}}>
+            {showPicker?<><X size={13}/> Annuler</>:<><UserPlus size={13}/> Ajouter des jeux</>}
+          </button>
+        </div>
+        {showPicker&&(
+          <div className="fi" style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:14,padding:14,marginBottom:14}}>
+            <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:10}}>{freeGames.length} jeu{freeGames.length!==1?'x':''} disponible{freeGames.length!==1?'s':''}</div>
+            <GamePicker games={freeGames} selected={pickerSel} onToggle={togglePicker}/>
+            {freeGames.length>0&&<button onClick={addGames} disabled={pickerSel.length===0} style={{width:'100%',marginTop:12,background:pickerSel.length>0?C.acc:'#2a2a3a',borderRadius:10,padding:'11px',fontFamily:'Outfit',fontWeight:700,fontSize:14,color:pickerSel.length>0?'#000':C.muted,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+              <Check size={15}/> Ajouter {pickerSel.length>0?`${pickerSel.length} jeu${pickerSel.length>1?'x':''}`:''} au lot
+            </button>}
+          </div>
+        )}
+        {lotGames.length===0&&!showPicker&&<div style={{textAlign:'center',padding:'20px 0',color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:10}}>Aucun jeu · Utilisez « Ajouter des jeux » ci-dessus.</div>}
+        {lotGames.map(g=>(
+          <GameCard key={g.id} game={{...g,lotId:''}} lots={[]} onClick={()=>navigate('gameDetail',g.id)}
+            rightEl={<button onClick={e=>{e.stopPropagation();removeGame(g.id)}} style={{padding:'8px',color:`${C.red}99`,flexShrink:0}}><MinusCircle size={20}/></button>}
+          />
+        ))}
+        <Gap h={16}/>
+        <button onClick={()=>setConfirm(true)} style={{width:'100%',background:`${C.red}14`,border:`1px solid ${C.red}40`,borderRadius:12,padding:'13px',fontFamily:'Outfit',fontWeight:600,fontSize:14,color:C.red,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><Trash2 size={16}/> Supprimer ce lot</button>
+        {confirm&&<div style={{marginTop:10,background:`${C.red}12`,border:`1px solid ${C.red}40`,borderRadius:12,padding:14}}><div style={{fontFamily:'Outfit',fontSize:13,color:C.text,marginBottom:12,textAlign:'center'}}>Les jeux seront remis en « En stock ».</div><div style={{display:'flex',gap:10}}><button onClick={deleteLot} style={{flex:1,background:C.red,borderRadius:10,padding:'10px',fontFamily:'Outfit',fontWeight:600,fontSize:14,color:'#fff'}}>Confirmer</button><button onClick={()=>setConfirm(false)} style={{flex:1,background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:'10px',fontFamily:'Outfit',fontSize:14,color:C.muted}}>Annuler</button></div></div>}
+      </div>
+    </div>
+  );
+}
+
+/* ══════ BOTTOM NAV ══════ */
+function BottomNav({screen,navigate}){
+  const tabs=[{id:'home',label:'Accueil',Icon:Home},{id:'inventory',label:'Inventaire',Icon:List},{id:'addGame',label:'Ajouter',Icon:Plus,accent:true},{id:'lots',label:'Lots',Icon:Layers}];
+  return(
+    <div style={{position:'fixed',bottom:0,left:0,right:0,background:C.card,borderTop:`1px solid ${C.border}`,display:'flex',padding:'10px 0 env(safe-area-inset-bottom,18px)',zIndex:100}}>
+      {tabs.map(({id,label,Icon,accent})=>{const active=screen===id;return(
+        <button key={id} onClick={()=>navigate(id)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+          <div style={{width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:13,background:accent?(active?C.acc:C.acc2):'transparent'}}><Icon size={20} style={{color:accent?C.acc:(active?C.acc:C.muted)}}/></div>
+          <span style={{fontFamily:'Outfit',fontSize:10,fontWeight:500,color:active?C.acc:C.muted}}>{label}</span>
+        </button>
+      );})}
+    </div>
+  );
+}
+
+/* ══════ APP ══════ */
+function App(){
+  const [data,setData]=useState(()=>loadData());
+  const [screen,setScreen]=useState('home');const [selId,setSelId]=useState(null);
+  const updateData=useCallback((d)=>{setData(d);saveData(d)},[]);
+  const navigate=(sc,id=null)=>{setScreen(sc);setSelId(id);window.scrollTo(0,0)};
+  function handleAddSave(g){const games=data.games||[];const exists=games.find(x=>x.id===g.id);updateData({...data,games:exists?games.map(x=>x.id===g.id?g:x):[...games,g]});navigate('inventory');}
+  const noNav=['addGame','gameDetail','lotDetail'];const p={data,navigate,selectedId:selId,updateData};
+  return(
+    <div style={{fontFamily:'Outfit,sans-serif',background:C.bg,minHeight:'100vh',color:C.text}}>
+      {screen==='home'&&<HomeScreen {...p}/>}
+      {screen==='inventory'&&<InventoryScreen {...p}/>}
+      {screen==='addGame'&&<GameFormScreen lots={data.lots||[]} onBack={()=>navigate('inventory')} onSave={handleAddSave}/>}
+      {screen==='gameDetail'&&<GameDetailScreen {...p}/>}
+      {screen==='lots'&&<LotsScreen {...p}/>}
+      {screen==='lotDetail'&&<LotDetailScreen {...p}/>}
+      {!noNav.includes(screen)&&<BottomNav screen={screen} navigate={navigate}/>}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
