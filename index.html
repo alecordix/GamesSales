@@ -1009,6 +1009,76 @@ function HomeScreen({data, navigate}) {
   );
 }
 
+
+// ── Bulk Action Popup (sélection multiple) ─────────────────────────
+function BulkPopup({selected, total, onClose, onApply, type}) {
+  // type = 'games' | 'lots'
+  var [newStatus, setNewStatus] = useState('');
+  var [newSellPlat, setNewSellPlat] = useState('');
+
+  function apply() {
+    if (!newStatus && !newSellPlat) return;
+    onApply({status: newStatus||null, sellPlatform: newSellPlat||null});
+    onClose();
+  }
+
+  var hasChange = !!(newStatus || newSellPlat);
+  var IS_S = {width:'100%',background:'#1c1c28',border:'1px solid #252538',borderRadius:10,padding:'11px 14px',color:'#eeeef5',fontFamily:'Outfit,sans-serif',fontSize:14,appearance:'none'};
+  var ARROW = "url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")";
+
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:300,display:'flex',alignItems:'flex-end',justifyContent:'center'}} onClick={onClose}>
+      {/* Backdrop */}
+      <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,.6)'}}/>
+      {/* Sheet */}
+      <div className="fi" style={{position:'relative',width:'100%',maxWidth:480,background:'#13131a',borderRadius:'20px 20px 0 0',padding:'20px 20px 40px',zIndex:1}} onClick={function(e){e.stopPropagation();}}>
+        {/* Handle */}
+        <div style={{width:40,height:4,background:'#333350',borderRadius:2,margin:'0 auto 20px'}}/>
+
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <div>
+            <div style={{fontFamily:'Syne,sans-serif',fontSize:18,fontWeight:800,color:'#eeeef5'}}>Modifier la sélection</div>
+            <div style={{fontFamily:'Outfit',fontSize:12,color:'#6b7280',marginTop:2}}>
+              {selected} {type==='lots'?'lot':'jeu'}{selected>1?'s':''} sélectionné{selected>1?'s':''}
+            </div>
+          </div>
+          <button onClick={onClose} style={{color:'#6b7280',padding:6,display:'flex'}}>
+            {React.createElement(SvgIcon,{size:20,style:null},React.createElement('line',{x1:'18',y1:'6',x2:'6',y2:'18'}),React.createElement('line',{x1:'6',y1:'6',x2:'18',y2:'18'}))}
+          </button>
+        </div>
+
+        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+          <div>
+            <div style={{fontFamily:'Outfit',fontSize:11,color:'#6b7280',marginBottom:6,letterSpacing:.5,fontWeight:500}}>NOUVEAU STATUT</div>
+            <select value={newStatus} onChange={function(e){setNewStatus(e.target.value);}}
+              style={Object.assign({},IS_S,{backgroundImage:ARROW,backgroundRepeat:'no-repeat',backgroundPosition:'right 12px center',color:newStatus?'#eeeef5':'#6b7280'})}>
+              <option value="">Inchangé</option>
+              {type==='games'
+                ? STATS.map(function(s){return <option key={s} value={s}>{s}</option>;})
+                : [<option key="s1" value="En stock">En stock</option>,<option key="s2" value="Vendu">Vendu</option>,<option key="s3" value="Reserve">Reserve</option>]
+              }
+            </select>
+          </div>
+
+          <div>
+            <div style={{fontFamily:'Outfit',fontSize:11,color:'#6b7280',marginBottom:6,letterSpacing:.5,fontWeight:500}}>NOUVELLE PLATEFORME DE VENTE</div>
+            <select value={newSellPlat} onChange={function(e){setNewSellPlat(e.target.value);}}
+              style={Object.assign({},IS_S,{backgroundImage:ARROW,backgroundRepeat:'no-repeat',backgroundPosition:'right 12px center',color:newSellPlat?'#eeeef5':'#6b7280'})}>
+              <option value="">Inchangée</option>
+              {SELL_PLATS.filter(function(p){return p;}).map(function(p){return <option key={p} value={p}>{p}</option>;})}
+            </select>
+          </div>
+
+          <button onClick={apply} disabled={!hasChange}
+            style={{width:'100%',background:hasChange?'#f5a623':'#2a2a3a',borderRadius:12,padding:'14px',fontFamily:'Outfit',fontWeight:700,fontSize:15,color:hasChange?'#000':'#6b7280',marginTop:4,transition:'background .2s'}}>
+            Appliquer à {selected} {type==='lots'?'lot':'jeu'}{selected>1?'s':''}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Inventory ──────────────────────────────────────────────────────
 function InvScreen({data, navigate, updateData}) {
   var games = data.games || [];
@@ -1020,6 +1090,9 @@ function InvScreen({data, navigate, updateData}) {
   var [sortBy,setSortBy]   = useState('date');
   var [sortDir,setSortDir] = useState('desc');
   var [showF,setShowF]     = useState(false);
+  var [selMode,setSelMode] = useState(false);
+  var [selIds,setSelIds]   = useState([]);
+  var [showBulk,setShowBulk] = useState(false);
 
   var filtered = games.filter(function(g) {
     if (q && !(g.title||'').toLowerCase().includes(q.toLowerCase()) && !(g.platform||'').toLowerCase().includes(q.toLowerCase())) return false;
@@ -1040,6 +1113,21 @@ function InvScreen({data, navigate, updateData}) {
   var platforms     = Array.from(new Set(games.map(function(g){ return g.platform; }).filter(Boolean)));
   var sellPlatforms = Array.from(new Set(games.map(function(g){ return g.sellPlatform; }).filter(Boolean)));
 
+  function toggleSel(id) {
+    setSelIds(function(prev){ return prev.includes(id) ? prev.filter(function(x){return x!==id;}) : [...prev,id]; });
+  }
+  function applyBulk(changes) {
+    var newGames = games.map(function(g) {
+      if (!selIds.includes(g.id)) return g;
+      var upd = Object.assign({},g);
+      if (changes.status)      upd.status = changes.status;
+      if (changes.sellPlatform !== null) upd.sellPlatform = changes.sellPlatform;
+      return upd;
+    });
+    updateData(Object.assign({},data,{games:newGames}));
+    setSelIds([]);
+    setSelMode(false);
+  }
   function quickEdit(gid, changes) {
     updateData(Object.assign({}, data, {games: games.map(function(g){ return g.id===gid ? Object.assign({},g,changes) : g; })}));
   }
@@ -1052,6 +1140,9 @@ function InvScreen({data, navigate, updateData}) {
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Inventaire</div>
           <div style={{display:'flex',gap:8}}>
+            <button onClick={function(){ if(selMode){setSelMode(false);setSelIds([]);}else{setSelMode(true);} }} style={{display:'flex',alignItems:'center',gap:5,color:selMode?C.acc:C.muted,fontFamily:'Outfit',fontSize:12,border:'1px solid '+(selMode?C.acc:C.border),borderRadius:8,padding:'6px 10px',background:selMode?C.acc2:C.card2}}>
+              {selMode?'Annuler':'Sélectionner'}
+            </button>
             <button onClick={function(){ setShowF(function(v){ return !v; }); }} style={{display:'flex',alignItems:'center',gap:5,color:showF?C.acc:C.muted,fontFamily:'Outfit',fontSize:12,border:'1px solid '+(showF?C.acc:C.border),borderRadius:8,padding:'6px 10px',background:showF?C.acc2:C.card2}}>
               <IFilter size={13}/> Filtres
             </button>
@@ -1117,10 +1208,46 @@ function InvScreen({data, navigate, updateData}) {
       </div>
       <div style={{padding:'10px 16px'}}>
         <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:10}}>{filtered.length} jeu{filtered.length!==1?'x':''}</div>
+        {selMode && selIds.length > 0 && (
+          <div className="fi" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,background:C.acc2,border:'1px solid '+C.acc+'50',borderRadius:10,padding:'10px 14px'}}>
+            <span style={{fontFamily:'Outfit',fontSize:13,color:C.acc,fontWeight:600}}>{selIds.length} jeu{selIds.length>1?'x':''} sélectionné{selIds.length>1?'s':''}</span>
+            <button onClick={function(){setShowBulk(true);}} style={{background:C.acc,borderRadius:8,padding:'7px 14px',fontFamily:'Outfit',fontWeight:700,fontSize:13,color:'#000'}}>
+              Modifier
+            </button>
+          </div>
+        )}
         {filtered.length === 0
           ? <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit'}}>Aucun resultat</div>
-          : filtered.map(function(g){ return <GCard key={g.id} game={g} lots={lots} onClick={function(){ navigate('gd',g.id); }} onQuickEdit={function(ch){ quickEdit(g.id,ch); }}/>; })
+          : filtered.map(function(g){
+              var isSel = selIds.includes(g.id);
+              return (
+                <div key={g.id} style={{position:'relative'}}>
+                  {selMode && (
+                    <div onClick={function(){toggleSel(g.id);}} style={{position:'absolute',left:0,top:0,bottom:0,width:48,zIndex:10,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                      <div style={{width:20,height:20,borderRadius:6,border:'2px solid '+(isSel?C.acc:C.muted),background:isSel?C.acc:'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        {isSel && React.createElement(SvgIcon,{size:13,style:{color:'#000'}},React.createElement('polyline',{points:'20 6 9 17 4 12'}))}
+                      </div>
+                    </div>
+                  )}
+                  <div style={{marginLeft:selMode?40:0,transition:'margin .2s'}}>
+                    <GCard game={g} lots={lots}
+                      onClick={selMode ? function(){toggleSel(g.id);} : function(){ navigate('gd',g.id); }}
+                      onQuickEdit={selMode ? null : function(ch){ quickEdit(g.id,ch); }}
+                    />
+                  </div>
+                </div>
+              );
+            })
         }
+        {showBulk && (
+          <BulkPopup
+            selected={selIds.length}
+            total={games.length}
+            type="games"
+            onClose={function(){setShowBulk(false);}}
+            onApply={applyBulk}
+          />
+        )}
       </div>
     </div>
   );
@@ -1425,6 +1552,22 @@ function LotsScreen({data, navigate, updateData}) {
   var free = games.filter(function(g){ return !g.lotId; });
   var [sel, setSel] = useState([]);
   function togSel(id){ setSel(function(p){ return p.includes(id)?p.filter(function(x){ return x!==id; }):[...p,id]; }); }
+  var [lotSelMode, setLotSelMode]   = useState(false);
+  var [lotSelIds, setLotSelIds]     = useState([]);
+  var [showLotBulk, setShowLotBulk] = useState(false);
+  function toggleLotSel(id){ setLotSelIds(function(p){ return p.includes(id)?p.filter(function(x){return x!==id;}):[...p,id]; }); }
+  function applyLotBulk(changes) {
+    var newLots = lots.map(function(l) {
+      if (!lotSelIds.includes(l.id)) return l;
+      var upd = Object.assign({},l);
+      if (changes.status) upd.status = changes.status;
+      if (changes.sellPlatform !== null) upd.sellPlatform = changes.sellPlatform;
+      return upd;
+    });
+    updateData(Object.assign({},data,{lots:newLots}));
+    setLotSelIds([]);
+    setLotSelMode(false);
+  }
   var lp = lProfit(form);
   var lpc = lp > 0 ? C.green : lp < 0 ? C.red : C.muted;
   var stColors = {Vendu:C.green,Reserve:C.blue,'En stock':'#555'};
@@ -1445,9 +1588,14 @@ function LotsScreen({data, navigate, updateData}) {
           <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Lots</div>
           <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>{lots.length} lot{lots.length!==1?'s':''}</div>
         </div>
-        <button onClick={function(){ setShowF(function(v){ return !v; }); setSel([]); }} style={{background:showF?C.card2:C.acc,border:'1px solid '+(showF?C.border:C.acc),borderRadius:12,padding:'8px 14px',display:'flex',alignItems:'center',gap:8,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:showF?C.muted:'#000'}}>
-          {showF ? <><IX size={15} /> Annuler</> : <><IPlus size={15} /> Nouveau lot</>}
-        </button>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <button onClick={function(){ if(lotSelMode){setLotSelMode(false);setLotSelIds([]);}else{setLotSelMode(true);} }} style={{color:lotSelMode?C.acc:C.muted,fontFamily:'Outfit',fontSize:12,border:'1px solid '+(lotSelMode?C.acc:C.border),borderRadius:8,padding:'6px 10px',background:lotSelMode?C.acc2:C.card2}}>
+            {lotSelMode?'Annuler':'Sélectionner'}
+          </button>
+          <button onClick={function(){ setShowF(function(v){ return !v; }); setSel([]); }} style={{background:showF?C.card2:C.acc,border:'1px solid '+(showF?C.border:C.acc),borderRadius:12,padding:'8px 14px',display:'flex',alignItems:'center',gap:8,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:showF?C.muted:'#000'}}>
+            {showF ? <><IX size={15} /> Annuler</> : <><IPlus size={15} /> Nouveau lot</>}
+          </button>
+        </div>
       </div>
 
       {showF && (
@@ -1488,12 +1636,30 @@ function LotsScreen({data, navigate, updateData}) {
 
       <div style={{padding:'4px 16px'}}>
         {!lots.length && !showF && <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Aucun lot - creez-en un</div>}
+        {lotSelMode && lotSelIds.length > 0 && (
+          <div className="fi" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,background:C.acc2,border:'1px solid '+C.acc+'50',borderRadius:10,padding:'10px 14px'}}>
+            <span style={{fontFamily:'Outfit',fontSize:13,color:C.acc,fontWeight:600}}>{lotSelIds.length} lot{lotSelIds.length>1?'s':''} sélectionné{lotSelIds.length>1?'s':''}</span>
+            <button onClick={function(){setShowLotBulk(true);}} style={{background:C.acc,borderRadius:8,padding:'7px 14px',fontFamily:'Outfit',fontWeight:700,fontSize:13,color:'#000'}}>
+              Modifier
+            </button>
+          </div>
+        )}
         {lots.map(function(lot) {
           var lg = games.filter(function(g){ return g.lotId === lot.id; });
           var p = lProfit(lot);
           var pc = p > 0 ? C.green : p < 0 ? C.red : C.muted;
+          var isLotSel = lotSelIds.includes(lot.id);
           return (
-            <div key={lot.id} onClick={function(){ navigate('ld',lot.id); }} className="gc" style={{background:C.card,border:'1px solid '+C.border,borderRadius:14,padding:'15px 16px',marginBottom:10,cursor:'pointer'}}>
+            <div key={lot.id} style={{position:'relative',marginBottom:10}}>
+              {lotSelMode && (
+                <div onClick={function(){toggleLotSel(lot.id);}} style={{position:'absolute',left:0,top:0,bottom:0,width:48,zIndex:10,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                  <div style={{width:20,height:20,borderRadius:6,border:'2px solid '+(isLotSel?C.acc:C.muted),background:isLotSel?C.acc:'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {isLotSel && React.createElement(SvgIcon,{size:13,style:{color:'#000'}},React.createElement('polyline',{points:'20 6 9 17 4 12'}))}
+                  </div>
+                </div>
+              )}
+            <div style={{marginLeft:lotSelMode?40:0,transition:'margin .2s'}}>
+            <div onClick={lotSelMode?function(){toggleLotSel(lot.id);}:function(){ navigate('ld',lot.id); }} className="gc" style={{background:C.card,border:'1px solid '+(isLotSel?C.acc:C.border),borderRadius:14,padding:'15px 16px',cursor:'pointer'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
                 <div>
                   <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.text,marginBottom:3}}>📦 {lot.name}</div>
@@ -1509,8 +1675,19 @@ function LotsScreen({data, navigate, updateData}) {
               </div>
               {lot.notes && <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted}}>{lot.notes}</div>}
             </div>
+            </div>
+            </div>
           );
         })}
+        {showLotBulk && (
+          <BulkPopup
+            selected={lotSelIds.length}
+            total={lots.length}
+            type="lots"
+            onClose={function(){ setShowLotBulk(false); }}
+            onApply={applyLotBulk}
+          />
+        )}
       </div>
     </div>
   );
