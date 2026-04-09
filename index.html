@@ -278,6 +278,10 @@ function HomeScreen({data,navigate}) {
   const totalInvesti = games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixAchat||0),0) + lots.reduce((s,l)=>s+parseFloat(l.prixAchat||0),0);
   const totalRevenus = soldSolo.reduce((s,g)=>s+parseFloat(g.prixVente||0),0) + soldLots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
   const totalBenef = totalRevenus - totalInvesti;
+  // Potentiel global = tous les prix de vente renseignés (lots + jeux individuels, tous statuts)
+  const totalPotentiel = games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixVente||0),0) + lots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
+  // Potentiel global = tous les prix de vente renseignés (lots + jeux individuels, tous statuts)
+  const totalPotentiel = games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixVente||0),0) + lots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
   const recent = [...games].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,5);
   return (
     <div style={{paddingBottom:90}} className="su">
@@ -295,13 +299,23 @@ function HomeScreen({data,navigate}) {
         </div>
       </div>
       {/* Stats financieres */}
-      <div style={{padding:'12px 16px 20px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
-        {[{l:'INVESTI',v:fmt(totalInvesti)},{l:'REVENUS',v:fmt(totalRevenus)},{l:'BENEFICE',v:fmt(totalBenef),col:totalBenef>=0?C.green:C.red}].map(({l,v,col})=>(
+      <div style={{padding:'12px 16px 8px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        {[{l:'INVESTI',v:fmt(totalInvesti)},{l:'REVENUS ENCAISSES',v:fmt(totalRevenus)},{l:'BENEFICE ACTUEL',v:fmt(totalBenef),col:totalBenef>=0?C.green:C.red}].map(({l,v,col})=>(
           <div key={l} style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'12px 14px'}}>
             <div style={{fontFamily:'Outfit',fontSize:9,color:C.muted,letterSpacing:.8,marginBottom:6,fontWeight:500}}>{l}</div>
             <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:15,fontWeight:600,color:col||C.text}}>{v}</div>
           </div>
         ))}
+      </div>
+      {/* Potentiel global */}
+      <div style={{padding:'0 16px 20px'}}>
+        <div style={{background:'linear-gradient(135deg,'+C.acc+'15,'+C.acc+'05)',border:'1px solid '+C.acc+'35',borderRadius:14,padding:'13px 16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div>
+            <div style={{fontFamily:'Outfit',fontSize:9,color:C.acc+'99',letterSpacing:.8,marginBottom:5,fontWeight:500}}>POTENTIEL GLOBAL (tous statuts)</div>
+            <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Prix de vente renseignes - lots + jeux individuels</div>
+          </div>
+          <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:20,fontWeight:600,color:C.acc,flexShrink:0,marginLeft:12}}>{fmt(totalPotentiel)}</div>
+        </div>
       </div>
       <div style={{padding:'0 16px'}}>
         <div style={{fontFamily:'Syne,sans-serif',fontSize:17,fontWeight:700,color:C.text,marginBottom:12}}>Recemment ajoutes</div>
