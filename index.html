@@ -1053,10 +1053,7 @@ function BulkPopup({selected, total, onClose, onApply, type}) {
             <select value={newStatus} onChange={function(e){setNewStatus(e.target.value);}}
               style={Object.assign({},IS_S,{backgroundImage:ARROW,backgroundRepeat:'no-repeat',backgroundPosition:'right 12px center',color:newStatus?'#eeeef5':'#6b7280'})}>
               <option value="">Inchangé</option>
-              {type==='games'
-                ? STATS.map(function(s){return <option key={s} value={s}>{s}</option>;})
-                : [<option key="s1" value="En stock">En stock</option>,<option key="s2" value="Vendu">Vendu</option>,<option key="s3" value="Reserve">Reserve</option>]
-              }
+              {(type==='games' ? STATS : ['En stock','Vendu','Reserve']).map(function(s){return <option key={s} value={s}>{s}</option>;})}
             </select>
           </div>
 
