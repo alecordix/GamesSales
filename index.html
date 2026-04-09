@@ -5,11 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0a0a0f">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>GameTrack</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
@@ -18,7 +17,6 @@
     #root{height:100%}
     input,select,textarea{outline:none}
     button{cursor:pointer;border:none;background:none}
-    video{display:block}
     ::-webkit-scrollbar{width:3px}
     ::-webkit-scrollbar-thumb{background:#333350;border-radius:2px}
     input::placeholder,textarea::placeholder{color:#404058}
@@ -26,225 +24,661 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-    .su{animation:slideUp 0.25s ease both}
-    .fi{animation:fadeIn 0.2s ease both}
-    .gc:active{opacity:0.82;transform:scale(0.99)}
-
-    /* ── html5-qrcode overrides ── */
-    #gt-scan-div video { width:100%!important; object-fit:cover!important; display:block!important; }
-    #gt-scan-div img { display:none!important; }
-    #qr-shaded-region { box-shadow:none!important; border:none!important; }
-    #qr-shaded-region div { border-color:#f5a623!important; border-width:4px!important; width:32px!important; height:32px!important; }
+    .su{animation:slideUp .25s ease both}
+    .fi{animation:fadeIn .2s ease both}
+    .gc:active{opacity:.82;transform:scale(.99)}
+    #gt-scanner video{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important}
   </style>
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useRef, useCallback } = React;
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback} = React;
 
-/* ══════ ICONS ══════ */
-const Svg=({c,size=18,style})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style} dangerouslySetInnerHTML={{__html:c}}/>;
-const Plus=p=><Svg {...p} c="<path d='M12 5v14M5 12h14'/>"/>;
-const Search=p=><Svg {...p} c="<circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/>"/>;
-const ArrowLeft=p=><Svg {...p} c="<path d='m12 19-7-7 7-7M19 12H5'/>"/>;
-const Loader=p=><Svg {...p} c="<path d='M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83'/>"/>;
-const Trash2=p=><Svg {...p} c="<path d='M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'/><path d='M10 11v6M14 11v6'/>"/>;
-const Download=p=><Svg {...p} c="<path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3'/>"/>;
-const Camera=p=><Svg {...p} c="<path d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/><circle cx='12' cy='13' r='4'/>"/>;
-const X=p=><Svg {...p} c="<path d='M18 6 6 18M6 6l12 12'/>"/>;
-const Check=p=><Svg {...p} c="<path d='M20 6 9 17l-5-5'/>"/>;
-const Home=p=><Svg {...p} c="<path d='m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><path d='M9 22V12h6v10'/>"/>;
-const List=p=><Svg {...p} c="<path d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'/>"/>;
-const Layers=p=><Svg {...p} c="<path d='m12 2 10 6.5v7L12 22 2 15.5v-7L12 2z'/><path d='M12 22v-6.5'/><path d='m22 8.5-10 7-10-7'/>"/>;
-const Edit3=p=><Svg {...p} c="<path d='M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z'/>"/>;
-const TrendingUp=p=><Svg {...p} c="<path d='M22 7 13.5 15.5l-5-5L2 17'/><path d='M16 7h6v6'/>"/>;
-const UserPlus=p=><Svg {...p} c="<path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><line x1='19' y1='8' x2='19' y2='14'/><line x1='22' y1='11' x2='16' y2='11'/>"/>;
-const MinusCircle=p=><Svg {...p} c="<circle cx='12' cy='12' r='10'/><line x1='8' y1='12' x2='16' y2='12'/>"/>;
-const Zap=p=><Svg {...p} c="<polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/>"/>;
+/* ─── Icons (real SVG elements, no dangerouslySetInnerHTML) ─── */
+const SvgWrap = ({size=18,style,children}) => (
+  React.createElement('svg',{width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",style},children)
+);
+const IconPlus  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('line',{x1:"12",y1:"5",x2:"12",y2:"19"}),React.createElement('line',{x1:"5",y1:"12",x2:"19",y2:"12"}));
+const IconSearch= ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('circle',{cx:"11",cy:"11",r:"8"}),React.createElement('line',{x1:"21",y1:"21",x2:"16.65",y2:"16.65"}));
+const IconLeft  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('line',{x1:"19",y1:"12",x2:"5",y2:"12"}),React.createElement('polyline',{points:"12 19 5 12 12 5"}));
+const IconLoad  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('line',{x1:"12",y1:"2",x2:"12",y2:"6"}),React.createElement('line',{x1:"12",y1:"18",x2:"12",y2:"22"}),React.createElement('line',{x1:"4.93",y1:"4.93",x2:"7.76",y2:"7.76"}),React.createElement('line',{x1:"16.24",y1:"16.24",x2:"19.07",y2:"19.07"}),React.createElement('line',{x1:"2",y1:"12",x2:"6",y2:"12"}),React.createElement('line',{x1:"18",y1:"12",x2:"22",y2:"12"}),React.createElement('line',{x1:"4.93",y1:"19.07",x2:"7.76",y2:"16.24"}),React.createElement('line',{x1:"16.24",y1:"7.76",x2:"19.07",y2:"4.93"}));
+const IconTrash = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('polyline',{points:"3 6 5 6 21 6"}),React.createElement('path',{d:"M19 6l-1 14H6L5 6"}),React.createElement('path',{d:"M10 11v6"}),React.createElement('path',{d:"M14 11v6"}),React.createElement('path',{d:"M9 6V4h6v2"}));
+const IconDL    = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('path',{d:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"}),React.createElement('polyline',{points:"7 10 12 15 17 10"}),React.createElement('line',{x1:"12",y1:"15",x2:"12",y2:"3"}));
+const IconCam   = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('path',{d:"M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"}),React.createElement('circle',{cx:"12",cy:"13",r:"4"}));
+const IconX     = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('line',{x1:"18",y1:"6",x2:"6",y2:"18"}),React.createElement('line',{x1:"6",y1:"6",x2:"18",y2:"18"}));
+const IconChk   = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('polyline',{points:"20 6 9 17 4 12"}));
+const IconHome  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('path',{d:"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"}),React.createElement('polyline',{points:"9 22 9 12 15 12 15 22"}));
+const IconList  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('line',{x1:"8",y1:"6",x2:"21",y2:"6"}),React.createElement('line',{x1:"8",y1:"12",x2:"21",y2:"12"}),React.createElement('line',{x1:"8",y1:"18",x2:"21",y2:"18"}),React.createElement('line',{x1:"3",y1:"6",x2:"3.01",y2:"6"}),React.createElement('line',{x1:"3",y1:"12",x2:"3.01",y2:"12"}),React.createElement('line',{x1:"3",y1:"18",x2:"3.01",y2:"18"}));
+const IconLayers= ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('polygon',{points:"12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"}),React.createElement('line',{x1:"12",y1:"22",x2:"12",y2:"15.5"}),React.createElement('polyline',{points:"22 8.5 12 15.5 2 8.5"}));
+const IconEdit  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('path',{d:"M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"}),React.createElement('path',{d:"M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"}));
+const IconTrend = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('polyline',{points:"22 7 13.5 15.5 8.5 10.5 2 17"}),React.createElement('polyline',{points:"16 7 22 7 22 13"}));
+const IconUPlus = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('path',{d:"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"}),React.createElement('circle',{cx:"12",cy:"7",r:"4"}),React.createElement('line',{x1:"19",y1:"8",x2:"19",y2:"14"}),React.createElement('line',{x1:"22",y1:"11",x2:"16",y2:"11"}));
+const IconMinus = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('circle',{cx:"12",cy:"12",r:"10"}),React.createElement('line',{x1:"8",y1:"12",x2:"16",y2:"12"}));
 
-/* ══════ CONSTANTS ══════ */
-const PLATFORMS=['PS5','PS4','PS3','PS2','Xbox Series','Xbox One','Xbox 360','Switch','Wii U','Wii','3DS','DS','GBA','PC','Autre'];
-const CONDITIONS=['Neuf','Très bon état','Bon état','Correct','Mauvais état'];
-const STATUSES=['En stock','Vendu','Réservé'];
-const PLAT_COLORS={'PS5':'#003791','PS4':'#003791','PS3':'#003791','PS2':'#003791','Xbox Series':'#107C10','Xbox One':'#107C10','Xbox 360':'#107C10','Switch':'#E4000F','Wii':'#aaaaaa','Wii U':'#009AC7','3DS':'#CC0000','DS':'#CC0000','GBA':'#720E9E','PC':'#1B2838'};
-const C={bg:'#0a0a0f',card:'#13131a',card2:'#1c1c28',border:'#252538',acc:'#f5a623',acc2:'rgba(245,166,35,0.13)',green:'#22c55e',red:'#ef4444',blue:'#3b82f6',muted:'#6b7280',text:'#eeeef5'};
+/* ─── Constants ─── */
+const PLATS=['PS5','PS4','PS3','PS2','Xbox Series','Xbox One','Xbox 360','Switch','Wii U','Wii','3DS','DS','GBA','PC','Autre'];
+const CONDS=['Neuf','Tres bon etat','Bon etat','Correct','Mauvais etat'];
+const STATS=['En stock','Vendu','Reserve'];
+const PLC={'PS5':'#003791','PS4':'#003791','PS3':'#003791','PS2':'#003791','Xbox Series':'#107C10','Xbox One':'#107C10','Xbox 360':'#107C10','Switch':'#E4000F','Wii U':'#009AC7','Wii':'#aaaaaa','3DS':'#CC0000','DS':'#CC0000','GBA':'#720E9E','PC':'#1B2838'};
+const C={bg:'#0a0a0f',card:'#13131a',card2:'#1c1c28',border:'#252538',acc:'#f5a623',acc2:'rgba(245,166,35,.13)',green:'#22c55e',red:'#ef4444',blue:'#3b82f6',muted:'#6b7280',text:'#eeeef5'};
 
-/* ══════ HELPERS ══════ */
-const fmt=v=>`${parseFloat(v||0).toFixed(2)} €`;
-const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
-const ts=()=>Date.now();
-function calcGameProfit(g){const s=parseFloat(g.prixVente||0),b=parseFloat(g.prixAchat||0),sh=parseFloat(g.fraisPort||0),fee=s*parseFloat(g.tauxFrais||0)/100;return s-b-sh-fee;}
-function calcLotProfit(lot){const s=parseFloat(lot.prixVente||0),b=parseFloat(lot.prixAchat||0),sh=parseFloat(lot.fraisPort||0),fee=s*parseFloat(lot.tauxFrais||0)/100;return s-b-sh-fee;}
-
-function detectPlat(t=''){
-  const l=t.toLowerCase();
-  const map=[
-    ['playstation 5','PS5'],['ps5','PS5'],
-    ['playstation 4','PS4'],['ps4','PS4'],
-    ['playstation 3','PS3'],['ps3','PS3'],
-    ['playstation 2','PS2'],['ps2','PS2'],
-    ['xbox series','Xbox Series'],['xbox one','Xbox One'],['xbox 360','Xbox 360'],['xbox','Xbox One'],
-    ['nintendo switch','Switch'],['switch','Switch'],
-    ['wii u','Wii U'],['wii','Wii'],
-    ['nintendo 3ds','3DS'],['3ds','3DS'],
-    ['nintendo ds','DS'],[' ds ','DS'],
-    ['game boy advance','GBA'],['gba','GBA'],
-    ['pc ','PC'],['windows','PC'],['steam','PC'],
-  ];
-  for(const[k,v]of map)if(l.includes(k))return v;
+/* ─── Helpers ─── */
+const fmt = v => parseFloat(v||0).toFixed(2) + ' \u20ac';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+const ts  = () => Date.now();
+const gP  = g => { const s=parseFloat(g.prixVente||0),b=parseFloat(g.prixAchat||0),sh=parseFloat(g.fraisPort||0),f=s*parseFloat(g.tauxFrais||0)/100; return s-b-sh-f; };
+const lP  = l => { const s=parseFloat(l.prixVente||0),b=parseFloat(l.prixAchat||0),sh=parseFloat(l.fraisPort||0),f=s*parseFloat(l.tauxFrais||0)/100; return s-b-sh-f; };
+function detectPlat(t) {
+  const l=(t||'').toLowerCase();
+  const m=[['playstation 5','PS5'],['ps5','PS5'],['playstation 4','PS4'],['ps4','PS4'],['playstation 3','PS3'],['ps3','PS3'],['playstation 2','PS2'],['ps2','PS2'],['xbox series','Xbox Series'],['xbox one','Xbox One'],['xbox 360','Xbox 360'],['nintendo switch','Switch'],['switch','Switch'],['wii u','Wii U'],['wii','Wii'],['3ds','3DS'],['game boy','GBA'],['gba','GBA'],['windows','PC'],['steam','PC']];
+  for(const [k,v] of m) if(l.includes(k)) return v;
   return '';
 }
 
-/* ══════ STORAGE ══════ */
-const SK='gametrack-v4';
+/* ─── Storage + Seed ─── */
+const SK='gametrack-v6';
+const L1='lot-ps4-11';
+const L2='lot-18-mix';
+const SEED_LOTS = [
+  {id:L2,name:'LOT 18 JEUX PS2/PS3/Xbox 360/Wii',prixAchat:'37.29',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock',createdAt:1744250000000},
+  {id:L1,name:'LOT 11 JEUX PS4',prixAchat:'',prixVente:'55',fraisPort:'',tauxFrais:'',notes:'',status:'Vendu',createdAt:1744200000000}
+];
+const SEED_GAMES = [
+  {id:'gm01',title:'Gran Turismo Concept 2002',platform:'PS2',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000001},
+  {id:'gm02',title:'Grand Theft Auto V',platform:'PS3',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000002},
+  {id:'gm03',title:'Call of Duty Black Ops II',platform:'PS3',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000003},
+  {id:'gm04',title:'Call of Duty Black Ops',platform:'PS3',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000004},
+  {id:'gm05',title:'FIFA 10',platform:'Xbox 360',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000005},
+  {id:'gm06',title:'Battlefield 3',platform:'Xbox 360',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000006},
+  {id:'gm07',title:'Pro Evolution Soccer 2008',platform:'Xbox 360',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000007},
+  {id:'gm08',title:'Call of Duty Ghosts',platform:'Xbox 360',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000008},
+  {id:'gm09',title:'Call of Duty Black Ops II',platform:'Xbox 360',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000009},
+  {id:'gm10',title:'Ultimate Pro-Pinball',platform:'PS2',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000010},
+  {id:'gm11',title:'Tom Clancy Ghost Recon',platform:'PS2',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000011},
+  {id:'gm12',title:'Pro Evolution Soccer 3',platform:'PS2',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000012},
+  {id:'gm13',title:'GTA San Andreas',platform:'PS2',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000013},
+  {id:'gm14',title:'Conflict Vietnam',platform:'PS2',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000014},
+  {id:'gm15',title:'FIFA 08',platform:'Wii',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000015},
+  {id:'gm16',title:'Super Mario Galaxy',platform:'Wii',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000016},
+  {id:'gm17',title:'Inazuma Eleven Strikers',platform:'Wii',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000017},
+  {id:'gm18',title:'Pro Evolution Soccer 2013',platform:'Wii',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000018},
+  {id:'gs01',title:'Birthdays the Beginning',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000001},
+  {id:'gs02',title:'Metal Gear Solid V Phantom Pain',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000002},
+  {id:'gs03',title:'Destiny',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000003},
+  {id:'gs04',title:'Destiny 2',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000004},
+  {id:'gs05',title:'NBA 2K16',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000005},
+  {id:'gs06',title:'Air Missions HIND',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000006},
+  {id:'gs07',title:'Lara Croft Temple of Osiris',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000007},
+  {id:'gs08',title:'Call of Duty Modern Warfare',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000008},
+  {id:'gs09',title:'Uncharted 4',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000009},
+  {id:'gs10',title:'Call of Duty Black Ops 3',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000010},
+  {id:'gs11',title:'Call of Duty Black Ops',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000011}
+];
 
-/* ── Données initiales pré-renseignées ── */
-const _LID='lot-ps4-11-init';
-const _LID2='lot-18-mix-init';
-const SEED={
-  lots:[{
-    id:_LID2, name:'LOT 18 JEUX PS2/PS3/Xbox 360/Wii',
-    prixAchat:'37.29', prixVente:'', fraisPort:'', tauxFrais:'',
-    notes:'18 jeux multi-plateformes', status:'En stock', createdAt:1744250000000
-  },{
-    id:_LID, name:'LOT 11 JEUX PS4',
-    prixAchat:'', prixVente:'55', fraisPort:'', tauxFrais:'',
-    notes:'11 jeux PS4 - Bon état', status:'Vendu', createdAt:1744200000000
-  }],
-  games:[
-    {id:'gm-01',title:'Gran Turismo Concept 2002 Tokyo-Geneva',platform:'PS2',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000001},
-    {id:'gm-02',title:'Grand Theft Auto V',platform:'PS3',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000002},
-    {id:'gm-03',title:'Call of Duty: Black Ops II',platform:'PS3',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000003},
-    {id:'gm-04',title:'Call of Duty: Black Ops',platform:'PS3',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000004},
-    {id:'gm-05',title:'FIFA 10',platform:'Xbox 360',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000005},
-    {id:'gm-06',title:'Battlefield 3',platform:'Xbox 360',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000006},
-    {id:'gm-07',title:'Pro Evolution Soccer 2008',platform:'Xbox 360',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000007},
-    {id:'gm-08',title:'Call of Duty: Ghosts',platform:'Xbox 360',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000008},
-    {id:'gm-09',title:'Call of Duty: Black Ops II',platform:'Xbox 360',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000009},
-    {id:'gm-10',title:'Ultimate Pro-Pinball',platform:'PS2',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000010},
-    {id:'gm-11',title:"Tom Clancy's Ghost Recon",platform:'PS2',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000011},
-    {id:'gm-12',title:'Pro Evolution Soccer 3',platform:'PS2',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000012},
-    {id:'gm-13',title:'Grand Theft Auto: San Andreas',platform:'PS2',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000013},
-    {id:'gm-14',title:'Conflict: Vietnam',platform:'PS2',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000014},
-    {id:'gm-15',title:'FIFA 08',platform:'Wii',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000015},
-    {id:'gm-16',title:'Super Mario Galaxy',platform:'Wii',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000016},
-    {id:'gm-17',title:'Inazuma Eleven Strikers',platform:'Wii',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000017},
-    {id:'gm-18',title:'Pro Evolution Soccer 2013',platform:'Wii',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:_LID2,notes:'',image:'',createdAt:1744250000018},
-    {id:'gs-01',title:'Birthdays the Beginning',       platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000001},
-    {id:'gs-02',title:'Metal Gear Solid V: The Phantom Pain',platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000002},
-    {id:'gs-03',title:'Destiny',                        platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000003},
-    {id:'gs-04',title:'Destiny 2',                      platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000004},
-    {id:'gs-05',title:'NBA 2K16',                       platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000005},
-    {id:'gs-06',title:'Air Missions: HIND',             platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000006},
-    {id:'gs-07',title:"Lara Croft et le Temple d'Osiris",platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000007},
-    {id:'gs-08',title:'Call of Duty: Modern Warfare',   platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000008},
-    {id:'gs-09',title:'Uncharted 4',                    platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000009},
-    {id:'gs-10',title:'Call of Duty: Black Ops 3',      platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000010},
-    {id:'gs-11',title:'Call of Duty: Black Ops',        platform:'PS4',condition:'Bon état',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:_LID,notes:'',image:'',createdAt:1744200000011},
-  ]
-};
-
-function loadData(){
+function loadData() {
   try {
-    const raw=localStorage.getItem(SK);
-    const d=raw?JSON.parse(raw):{games:[],lots:[]};
-    // Injecter le lot de départ s'il n'existe pas encore
-    if(!d.lots.find(l=>l.id===_LID2)||!d.lots.find(l=>l.id===_LID)){
-      d.lots=[...SEED.lots,...(d.lots||[])];
-      d.games=[...SEED.games,...(d.games||[])];
-      localStorage.setItem(SK,JSON.stringify(d));
+    const raw = localStorage.getItem(SK);
+    const d = raw ? JSON.parse(raw) : {games:[],lots:[]};
+    let changed = false;
+    for (const sl of SEED_LOTS) {
+      if (!d.lots.find(l => l.id === sl.id)) {
+        d.lots.unshift(sl);
+        d.games.unshift(...SEED_GAMES.filter(g => g.lotId === sl.id));
+        changed = true;
+      }
     }
+    if (changed) localStorage.setItem(SK, JSON.stringify(d));
     return d;
-  } catch { return SEED; }
+  } catch(e) {
+    return {games:[...SEED_GAMES], lots:[...SEED_LOTS]};
+  }
 }
-function saveData(d){try{localStorage.setItem(SK,JSON.stringify(d))}catch{}}
+function saveData(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) {} }
 
-/* ══════ BARCODE LOOKUP — multi-sources ══════ */
+/* ─── UPC Lookup ─── */
 async function upcLookup(code) {
-  // Source 1: UPC Item DB
   try {
-    const r = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`, { signal: AbortSignal.timeout(5000) });
+    const r = await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc=' + code, {signal:AbortSignal.timeout(5000)});
     if (r.ok) {
       const d = await r.json();
-      if (d.items?.[0]) {
+      if (d.items && d.items[0] && d.items[0].title) {
         const i = d.items[0];
-        const title = i.title || '';
-        if (title) return { title, platform: detectPlat(title), image: i.images?.[0] || '' };
+        return {title:i.title, platform:detectPlat(i.title), image:(i.images&&i.images[0])||''};
       }
     }
-  } catch {}
-
-  // Source 2: Open Food Facts (has some games/entertainment)
-  try {
-    const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`, { signal: AbortSignal.timeout(5000) });
-    if (r.ok) {
-      const d = await r.json();
-      if (d.status === 1 && d.product?.product_name) {
-        const title = d.product.product_name;
-        return { title, platform: detectPlat(title), image: d.product.image_url || '' };
-      }
-    }
-  } catch {}
-
-  // Source 3: Open Library (for cases where the EAN is also an ISBN)
-  try {
-    const r = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${code}&format=json&jscmd=data`, { signal: AbortSignal.timeout(5000) });
-    if (r.ok) {
-      const d = await r.json();
-      const key = `ISBN:${code}`;
-      if (d[key]) return { title: d[key].title || '', platform: '', image: d[key].cover?.medium || '' };
-    }
-  } catch {}
-
+  } catch(e) {}
   return null;
 }
 
-/* ══════ CSV ══════ */
-function exportCSV(games,lots){
-  const lm=Object.fromEntries(lots.map(l=>[l.id,l.name]));
-  const rows=[['Titre','Plateforme','État','Barcode','Achat','Vente','Port','Frais%','Bénéfice','Statut','Lot'],
-    ...games.map(g=>{const inLot=!!g.lotId;const lot=g.lotId?lots.find(l=>l.id===g.lotId):null;return[g.title,g.platform,g.condition,g.barcode,inLot?'(lot)':g.prixAchat,inLot?'(lot)':g.prixVente,inLot?'(lot)':g.fraisPort,inLot?'(lot)':g.tauxFrais,inLot?'voir lot':calcGameProfit(g).toFixed(2),inLot?'En lot':g.status,g.lotId?lm[g.lotId]:'']})]
-  ;
-  const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
-  Object.assign(document.createElement('a'),{href:url,download:'gametrack.csv'}).click();URL.revokeObjectURL(url);
+/* ─── CSV Export ─── */
+function exportCSV(games, lots) {
+  const lm = {};
+  lots.forEach(l => { lm[l.id] = l.name; });
+  const rows = [['Titre','Plateforme','Etat','Barcode','Achat','Vente','Port','Frais%','Benefice','Statut','Lot']];
+  games.forEach(g => {
+    const il = !!g.lotId;
+    rows.push([g.title,g.platform,g.condition,g.barcode,il?'(lot)':g.prixAchat,il?'(lot)':g.prixVente,il?'(lot)':g.fraisPort,il?'(lot)':g.tauxFrais,il?'voir lot':gP(g).toFixed(2),il?'En lot':g.status,g.lotId?lm[g.lotId]:'']);
+  });
+  const csv = rows.map(r => r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+  const url = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'}));
+  const a = document.createElement('a');
+  a.href = url; a.download = 'gametrack.csv'; a.click();
+  URL.revokeObjectURL(url);
 }
 
-/* ══════ SHARED UI ══════ */
-const INP={width:'100%',background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit,sans-serif',fontSize:15};
-const Inp=({value,onChange,placeholder,type='text',mono,...p})=><input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} type={type} style={{...INP,fontFamily:mono?'"JetBrains Mono",monospace':'Outfit,sans-serif'}} {...p}/>;
-const Sel=({value,onChange,children})=><select value={value} onChange={e=>onChange(e.target.value)} style={{...INP,appearance:'none',color:value?C.text:C.muted,backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,backgroundRepeat:'no-repeat',backgroundPosition:'right 12px center'}}>{children}</select>;
-const Lbl=({ch})=><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6,letterSpacing:0.5,fontWeight:500}}>{ch}</div>;
-const Gap=({h=14})=><div style={{height:h}}/>;
-function Toast({msg,type='info'}){
-  if(!msg)return null;
-  const bg=type==='ok'?C.green:type==='err'?C.red:C.acc;
-  return <div className="fi" style={{position:'fixed',top:24,left:'50%',transform:'translateX(-50%)',background:C.card2,border:`1px solid ${bg}60`,borderRadius:12,padding:'10px 20px',fontFamily:'Outfit',fontSize:14,color:C.text,zIndex:500,boxShadow:'0 8px 32px rgba(0,0,0,0.6)',whiteSpace:'nowrap',maxWidth:'90vw',overflow:'hidden',textOverflow:'ellipsis'}}>{msg}</div>;
+/* ─── Shared UI ─── */
+const IS = {width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit,sans-serif',fontSize:15};
+function Inp({value,onChange,placeholder,type,mono}) {
+  return <input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} type={type||'text'} style={{...IS,fontFamily:mono?'"JetBrains Mono",monospace':'Outfit,sans-serif'}}/>;
+}
+function Sel({value,onChange,children}) {
+  return <select value={value} onChange={e=>onChange(e.target.value)} style={{...IS,appearance:'none',color:value?C.text:C.muted,backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")",backgroundRepeat:'no-repeat',backgroundPosition:'right 12px center'}}>{children}</select>;
+}
+function Lbl({t}) { return <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6,letterSpacing:.5,fontWeight:500}}>{t}</div>; }
+function Gap({h}) { return <div style={{height:h||14}}/>; }
+function Toast({msg,type}) {
+  if (!msg) return null;
+  const bc = type==='ok' ? C.green : type==='err' ? C.red : C.acc;
+  return <div className="fi" style={{position:'fixed',top:24,left:'50%',transform:'translateX(-50%)',background:C.card2,border:'1px solid '+bc+'60',borderRadius:12,padding:'10px 20px',fontFamily:'Outfit',fontSize:14,color:C.text,zIndex:999,boxShadow:'0 8px 32px rgba(0,0,0,.6)',maxWidth:'92vw',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{msg}</div>;
 }
 
-function GameCard({game,lots=[],onClick,rightEl}){
-  const inLot=!!game.lotId;const lot=inLot?lots.find(l=>l.id===game.lotId):null;
-  const p=inLot?null:calcGameProfit(game);const pc=p==null?C.muted:p>0?C.green:p<0?C.red:C.muted;
-  const platC=PLAT_COLORS[game.platform]||'#444';const stC={'Vendu':C.green,'Réservé':C.blue,'En stock':'#555'};
-  return(
-    <div onClick={onClick} className="gc" style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:'13px 14px 13px 18px',marginBottom:10,cursor:onClick?'pointer':'default',display:'flex',alignItems:'center',gap:12,position:'relative',overflow:'hidden'}}>
+function GCard({game,lots,onClick,right}) {
+  lots = lots || [];
+  const il = !!game.lotId;
+  const lot = il ? lots.find(l => l.id===game.lotId) : null;
+  const p = il ? null : gP(game);
+  const pc = p==null ? C.muted : p>0 ? C.green : p<0 ? C.red : C.muted;
+  const platC = PLC[game.platform] || '#444';
+  const stC = {Vendu:C.green,Reserve:C.blue,'En stock':'#555'};
+  return (
+    <div onClick={onClick} className="gc" style={{background:C.card,border:'1px solid '+C.border,borderRadius:14,padding:'13px 14px 13px 18px',marginBottom:10,cursor:onClick?'pointer':'default',display:'flex',alignItems:'center',gap:12,position:'relative',overflow:'hidden'}}>
       <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:platC,borderRadius:'14px 0 0 14px'}}/>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:15,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{game.title||<span style={{color:C.muted,fontStyle:'italic'}}>Sans titre</span>}</div>
         <div style={{display:'flex',gap:8,marginTop:4,alignItems:'center',flexWrap:'wrap'}}>
-          {game.platform&&<span style={{fontSize:11,color:C.muted}}>{game.platform}</span>}
-          {game.condition&&<span style={{fontSize:11,color:C.muted}}>· {game.condition}</span>}
-          {!inLot&&game.status&&<span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:`${stC[game.status]||'#555'}20`,color:stC[game.status]||C.muted,fontWeight:500}}>{game.status}</span>}
-          {inLot&&lot&&<span style={{fontSize:11,color:C.acc}}>📦 {lot.name}</span>}
+          {game.platform && <span style={{fontSize:11,color:C.muted}}>{game.platform}</span>}
+          {game.condition && <span style={{fontSize:11,color:C.muted}}>· {game.condition}</span>}
+          {!il && game.status && <span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:(stC[game.status]||'#555')+'20',color:stC[game.status]||C.muted,fontWeight:500}}>{game.status}</span>}
+          {il && lot && <span style={{fontSize:11,color:C.acc}}>lot: {lot.name}</span>}
         </div>
       </div>
-      {rightEl||<div style={{textAlign:'right',flexShrink:0}}>
-        {inLot?<div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,fontStyle:'italic'}}>Prix au lot</div>
-          :<><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:2}}>{fmt(game.prixAchat)}→{fmt(game.prixVente)}</div></>}
+      {right || <div style={{textAlign:'right',flexShrink:0}}>
+        {il ? <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,fontStyle:'italic'}}>Prix au lot</div>
+          : <><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:2}}>{fmt(game.prixAchat)}&rarr;{fmt(game.prixVente)}</div></>}
       </div>}
     </div>
   );
 }
 
-/* ══════════════════
+/* ─── Scanner ─── */
+function Scanner({onDetect,onClose}) {
+  const [st,setSt] = useState('start');
+  const [manual,setManual] = useState('');
+  const scanRef = useRef(null);
+  const done = useRef(false);
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const sc = new Html5Qrcode('gt-scanner', {verbose:false});
+        scanRef.current = sc;
+        await sc.start({facingMode:'environment'}, {fps:10, qrbox:{width:Math.min(window.innerWidth-60,280),height:110}},
+          text => { if(done.current) return; done.current=true; sc.stop().catch(()=>{}).finally(()=>onDetect(text)); },
+          ()=>{}
+        );
+        setSt('ok');
+      } catch(e) { setSt('err'); }
+    }, 300);
+    return () => { clearTimeout(t); if(scanRef.current) scanRef.current.stop().catch(()=>{}); };
+  }, []);
+  const close = () => { if(scanRef.current) scanRef.current.stop().catch(()=>{}); onClose(); };
+  const go = () => { if(!manual.trim()) return; if(scanRef.current) scanRef.current.stop().catch(()=>{}); onDetect(manual.trim()); };
+  return (
+    <div style={{position:'fixed',inset:0,background:'#000',zIndex:400,display:'flex',flexDirection:'column'}}>
+      <div style={{padding:'16px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(10,10,15,.96)',borderBottom:'1px solid #1a1a2e',flexShrink:0}}>
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:800,color:C.text}}>Scanner</div>
+        <button onClick={close} style={{color:C.muted,padding:6,display:'flex'}}><IconX size={22}/></button>
+      </div>
+      <div style={{flex:1,position:'relative',minHeight:0,background:'#111'}}>
+        <div id="gt-scanner" style={{width:'100%',height:'100%'}}/>
+        {st==='start' && <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#000',zIndex:5}}><IconLoad size={40} style={{color:C.acc,animation:'spin 1s linear infinite',marginBottom:14}}/><div style={{fontFamily:'Outfit',fontSize:14,color:C.muted}}>Demarrage camera...</div></div>}
+        {st==='err' && <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,background:'#000',zIndex:5}}><div style={{fontSize:48,marginBottom:16}}>camera</div><div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.text,textAlign:'center',marginBottom:8}}>Camera inaccessible</div><div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,textAlign:'center',lineHeight:1.7}}>Autorisez la camera dans Chrome. Utilisez la saisie manuelle.</div></div>}
+        {st==='ok' && <div style={{position:'absolute',bottom:14,left:0,right:0,textAlign:'center',zIndex:5,pointerEvents:'none'}}><div style={{display:'inline-block',background:'rgba(0,0,0,.65)',borderRadius:20,padding:'6px 16px',fontFamily:'Outfit',fontSize:13,color:'rgba(255,255,255,.9)'}}>Pointez le code-barre dans le cadre</div></div>}
+      </div>
+      <div style={{padding:'16px 20px 32px',background:'rgba(10,10,15,.98)',borderTop:'1px solid #1a1a2e',flexShrink:0}}>
+        <Lbl t="SAISIE MANUELLE"/>
+        <div style={{display:'flex',gap:10}}>
+          <input value={manual} onChange={e=>setManual(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()} placeholder="Ex: 3307216146735" inputMode="numeric" style={{flex:1,background:'#1a1a28',border:'1px solid '+C.border,borderRadius:10,padding:'12px 14px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:15,outline:'none'}}/>
+          <button onClick={go} style={{background:C.acc,borderRadius:10,padding:'12px 20px',color:'#000',fontFamily:'Outfit',fontWeight:700,fontSize:15}}>OK</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Home ─── */
+function HomeScreen({data,navigate}) {
+  const games = data.games||[], lots = data.lots||[];
+  const soldLots = lots.filter(l => l.status==='Vendu');
+  const soldLotIds = new Set(soldLots.map(l => l.id));
+  const soldSolo = games.filter(g => g.status==='Vendu' && !g.lotId);
+  const soldInLots = games.filter(g => g.lotId && soldLotIds.has(g.lotId));
+  const allSold = soldSolo.length + soldInLots.length;
+  const totalBuy = games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixAchat||0),0) + lots.reduce((s,l)=>s+parseFloat(l.prixAchat||0),0);
+  const totalSell = soldSolo.reduce((s,g)=>s+parseFloat(g.prixVente||0),0) + soldLots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
+  const totalProfit = soldSolo.reduce((s,g)=>s+gP(g),0) + soldLots.reduce((s,l)=>s+lP(l),0);
+  const inStock = games.filter(g=>!g.lotId&&g.status!=='Vendu').length + lots.filter(l=>l.status!=='Vendu').reduce((s,l)=>s+games.filter(g=>g.lotId===l.id).length,0);
+  const recent = [...games].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,5);
+  const stats = [{l:'INVESTI',v:fmt(totalBuy)},{l:'EN STOCK',v:inStock+' jeux'},{l:'REVENUS',v:fmt(totalSell)},{l:'BENEFICE',v:fmt(totalProfit),col:totalProfit>=0?C.green:C.red}];
+  return (
+    <div style={{paddingBottom:90}} className="su">
+      <div style={{padding:'40px 20px 24px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+          <div><div style={{fontFamily:'Syne,sans-serif',fontSize:32,fontWeight:800,color:C.text,letterSpacing:-.5}}>GameTrack</div><div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>Suivi revente jeux video</div></div>
+          <div style={{background:C.acc2,border:'1px solid '+C.acc+'40',borderRadius:14,padding:'8px 14px',display:'flex',alignItems:'center',gap:6}}><IconTrend size={16} style={{color:C.acc}}/><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:C.acc}}>{allSold} vendus</span></div>
+        </div>
+      </div>
+      <div style={{padding:'0 16px 20px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        {stats.map(({l,v,col}) => (
+          <div key={l} style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'14px 16px'}}>
+            <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,letterSpacing:.8,marginBottom:7,fontWeight:500}}>{l}</div>
+            <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:19,fontWeight:600,color:col||C.text}}>{v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{padding:'0 16px'}}>
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:17,fontWeight:700,color:C.text,marginBottom:12}}>Recemment ajoutes</div>
+        {recent.length===0 ? <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Aucun jeu - commencez par en ajouter un</div> : recent.map(g=><GCard key={g.id} game={g} lots={lots} onClick={()=>navigate('gd',g.id)}/>)}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Inventory ─── */
+function InvScreen({data,navigate}) {
+  const games = data.games||[], lots = data.lots||[];
+  const [q,setQ]=useState(''), [sf,setSf]=useState(''), [pf,setPf]=useState('');
+  const filtered = games.filter(g => {
+    if(q && !(g.title||'').toLowerCase().includes(q.toLowerCase()) && !(g.platform||'').toLowerCase().includes(q.toLowerCase())) return false;
+    if(sf==='En lot' && !g.lotId) return false;
+    if(sf && sf!=='En lot' && (g.lotId || g.status!==sf)) return false;
+    if(pf && g.platform!==pf) return false;
+    return true;
+  }).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const platforms = [...new Set(games.map(g=>g.platform).filter(Boolean))];
+  return (
+    <div style={{paddingBottom:90}} className="su">
+      <div style={{padding:'28px 16px 14px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+          <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Inventaire</div>
+          <button onClick={()=>exportCSV(games,lots)} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,border:'1px solid '+C.border,borderRadius:9,padding:'6px 12px',background:C.card2}}><IconDL size={14}/> CSV</button>
+        </div>
+        <div style={{position:'relative',marginBottom:10}}>
+          <IconSearch size={15} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:C.muted}}/>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher..." style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'10px 14px 10px 35px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}}/>
+        </div>
+        <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:4}}>
+          {['','En stock','Vendu','Reserve','En lot'].map(s => <button key={s} onClick={()=>setSf(s)} style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontFamily:'Outfit',fontSize:12,fontWeight:500,background:sf===s?C.acc:C.card2,color:sf===s?'#000':C.muted,border:'1px solid '+(sf===s?C.acc:C.border)}}>{s||'Tous'}</button>)}
+          {platforms.map(p => <button key={p} onClick={()=>setPf(pf===p?'':p)} style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontFamily:'Outfit',fontSize:12,fontWeight:500,background:pf===p?C.acc:C.card2,color:pf===p?'#000':C.muted,border:'1px solid '+(pf===p?C.acc:C.border)}}>{p}</button>)}
+        </div>
+      </div>
+      <div style={{padding:'10px 16px'}}>
+        <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:10}}>{filtered.length} jeu{filtered.length!==1?'x':''}</div>
+        {filtered.length===0 ? <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit'}}>Aucun resultat</div> : filtered.map(g=><GCard key={g.id} game={g} lots={lots} onClick={()=>navigate('gd',g.id)}/>)}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Game Form ─── */
+function emptyG() { return {id:'',barcode:'',title:'',platform:'',condition:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:'',notes:'',image:'',createdAt:ts()}; }
+function GameForm({init,lots,onSave,onBack}) {
+  lots = lots || [];
+  const [g,setG] = useState(Object.assign(emptyG(), init||{}));
+  const [scanning,setScanning] = useState(false);
+  const [lkSt,setLkSt] = useState('idle');
+  const [toast,setToast] = useState({msg:'',type:'info'});
+  const upd = (k,v) => setG(prev => Object.assign({},prev,{[k]:v}));
+  const showT = (msg,type) => { setToast({msg,type:type||'info'}); setTimeout(()=>setToast({msg:'',type:'info'}),3500); };
+  const il = !!g.lotId;
+  async function handleCode(code) {
+    setScanning(false); upd('barcode',code); setLkSt('loading'); showT('Recherche du jeu...');
+    const info = await upcLookup(code);
+    if(info && info.title) { setG(prev=>Object.assign({},prev,{barcode:code,title:info.title,platform:info.platform||prev.platform,image:info.image||prev.image})); setLkSt('ok'); showT('Jeu trouve !','ok'); }
+    else { setLkSt('err'); showT('Non trouve - remplissez manuellement','err'); }
+  }
+  const profit = il ? null : gP(g);
+  const pc = profit==null ? C.muted : profit>0 ? C.green : profit<0 ? C.red : C.muted;
+  function save() { if(!g.title.trim()) { showT('Titre requis','err'); return; } onSave(Object.assign({},g,{id:g.id||uid()})); }
+  return (
+    <div style={{paddingBottom:40}} className="su">
+      {scanning && <Scanner onDetect={handleCode} onClose={()=>setScanning(false)}/>}
+      <Toast msg={toast.msg} type={toast.type}/>
+      <div style={{padding:'28px 16px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
+        <button onClick={onBack} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}><IconLeft size={15}/> Retour</button>
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>{g.id?'Modifier':'Ajouter un jeu'}</div>
+      </div>
+      <div style={{padding:'0 16px'}}>
+        <button onClick={()=>setScanning(true)} style={{width:'100%',background:lkSt==='ok'?C.green+'18':C.acc2,border:'1.5px solid '+(lkSt==='ok'?C.green:C.acc)+'50',borderRadius:14,padding:15,display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginBottom:16,fontFamily:'Outfit',fontWeight:600,fontSize:15,color:lkSt==='ok'?C.green:C.acc}}>
+          {lkSt==='loading'?<IconLoad size={18} style={{animation:'spin 1s linear infinite'}}/>:lkSt==='ok'?<IconChk size={18}/>:<IconCam size={18}/>}
+          {lkSt==='loading'?'Recherche...':lkSt==='ok'?'Trouve ! (re-scanner)':'Scanner le code-barre'}
+        </button>
+        {g.barcode && <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,background:C.card2,borderRadius:10,padding:'8px 12px'}}>
+          {g.image && <img src={g.image} alt="" style={{width:44,height:44,borderRadius:6,objectFit:'contain',background:'#fff'}}/>}
+          <div><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Code scanne</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{g.barcode}</div></div>
+        </div>}
+        <Lbl t="TITRE *"/><Inp value={g.title} onChange={v=>upd('title',v)} placeholder="Ex: The Last of Us Part II"/>
+        <Gap/>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+          <div><Lbl t="PLATEFORME"/><Sel value={g.platform} onChange={v=>upd('platform',v)}><option value="">Choisir...</option>{PLATS.map(p=><option key={p} value={p}>{p}</option>)}</Sel></div>
+          <div><Lbl t="ETAT"/><Sel value={g.condition} onChange={v=>upd('condition',v)}><option value="">Choisir...</option>{CONDS.map(c=><option key={c} value={c}>{c}</option>)}</Sel></div>
+        </div>
+        <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16,marginBottom:14}}>
+          <Lbl t="LOT"/>
+          <Sel value={g.lotId} onChange={v=>upd('lotId',v)}><option value="">Aucun lot (prix individuels)</option>{lots.map(l=><option key={l.id} value={l.id}>Lot: {l.name}</option>)}</Sel>
+          {il && <div style={{fontFamily:'Outfit',fontSize:12,color:C.acc,marginTop:8}}>Prix geres au niveau du lot</div>}
+        </div>
+        {!il && <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16,marginBottom:14}}>
+          <Lbl t="PRIX ET FRAIS"/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+            <div><Lbl t="Achat (EUR)"/><Inp value={g.prixAchat} onChange={v=>upd('prixAchat',v)} placeholder="0.00" type="number" mono={true}/></div>
+            <div><Lbl t="Vente (EUR)"/><Inp value={g.prixVente} onChange={v=>upd('prixVente',v)} placeholder="0.00" type="number" mono={true}/></div>
+            <div><Lbl t="Port (EUR)"/><Inp value={g.fraisPort} onChange={v=>upd('fraisPort',v)} placeholder="0.00" type="number" mono={true}/></div>
+            <div><Lbl t="Frais % (eBay=13)"/><Inp value={g.tauxFrais} onChange={v=>upd('tauxFrais',v)} placeholder="0" type="number" mono={true}/></div>
+          </div>
+          <div style={{background:C.bg,borderRadius:10,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice estime</span>
+            <span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:18,fontWeight:600,color:pc}}>{profit>=0?'+':''}{fmt(profit)}</span>
+          </div>
+        </div>}
+        {!il && <div style={{marginBottom:14}}><Lbl t="STATUT"/><Sel value={g.status} onChange={v=>upd('status',v)}>{STATS.map(s=><option key={s} value={s}>{s}</option>)}</Sel></div>}
+        <Lbl t="NOTES"/>
+        <textarea value={g.notes} onChange={e=>upd('notes',e.target.value)} placeholder="Griffures, manquants..." style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:72,outline:'none',marginBottom:20}}/>
+        <button onClick={save} style={{width:'100%',background:C.acc,borderRadius:14,padding:15,fontFamily:'Outfit',fontWeight:700,fontSize:16,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><IconChk size={18}/> {g.id?'Enregistrer':'Ajouter le jeu'}</button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Game Detail ─── */
+function GameDetail({data,selectedId,navigate,updateData}) {
+  const games = data.games||[], lots = data.lots||[];
+  const game = games.find(g=>g.id===selectedId);
+  const [editing,setEditing]=useState(false), [confirm,setConfirm]=useState(false);
+  if(!game) return <div style={{padding:48,textAlign:'center',color:C.muted,fontFamily:'Outfit'}}>Jeu introuvable</div>;
+  if(editing) return <GameForm init={game} lots={lots} onBack={()=>setEditing(false)} onSave={g=>{updateData(Object.assign({},data,{games:games.map(x=>x.id===g.id?g:x)}));setEditing(false);}}/>;
+  const il=!!game.lotId, lot=il?lots.find(l=>l.id===game.lotId):null;
+  const p=il?null:gP(game), pc=p==null?C.muted:p>0?C.green:p<0?C.red:C.muted;
+  const platC=PLC[game.platform]||'#444';
+  return (
+    <div style={{paddingBottom:40}} className="su">
+      <div style={{padding:'28px 16px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
+        <button onClick={()=>navigate('inv')} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}><IconLeft size={15}/> Inventaire</button>
+        {game.platform && <div style={{display:'inline-block',padding:'3px 10px',borderRadius:20,background:platC+'25',color:platC,fontFamily:'Outfit',fontSize:12,fontWeight:600,marginBottom:8}}>{game.platform}</div>}
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text,lineHeight:1.2}}>{game.title||'Sans titre'}</div>
+        {game.condition && <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:4}}>{game.condition}</div>}
+      </div>
+      <div style={{padding:'0 16px'}}>
+        {game.image && <div style={{textAlign:'center',marginBottom:14}}><img src={game.image} alt="" style={{maxHeight:100,maxWidth:170,borderRadius:10,objectFit:'contain',background:'#fff',padding:4}}/></div>}
+        {il && lot
+          ? <div onClick={()=>navigate('ld',lot.id)} style={{background:C.acc2,border:'1px solid '+C.acc+'40',borderRadius:16,padding:'14px 16px',marginBottom:14,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:4}}>DANS LE LOT</div><div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.acc}}>Lot: {lot.name}</div><div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginTop:2}}>Prix geres au niveau du lot</div></div>
+              <div style={{color:C.acc,fontSize:22}}>&rsaquo;</div>
+            </div>
+          : <div style={{background:'linear-gradient(135deg,'+pc+'18,'+pc+'06)',border:'1px solid '+pc+'35',borderRadius:16,padding:20,marginBottom:14,textAlign:'center'}}><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6,letterSpacing:.8}}>BENEFICE NET</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:38,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div></div>}
+        <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'4px 16px',marginBottom:14}}>
+          {!il && [["Prix achat",fmt(game.prixAchat)],["Prix vente",fmt(game.prixVente)],["Frais port",fmt(game.fraisPort)],["Frais plat.",game.tauxFrais||'0'+'%'],["Statut",game.status]].map(([k,v]) => (
+            <div key={k} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+C.border}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>{k}</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{v}</span></div>
+          ))}
+          {game.barcode && <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0'}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Code-barre</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:12,color:C.text}}>{game.barcode}</span></div>}
+        </div>
+        {game.notes && <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'12px 14px',marginBottom:14}}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:5}}>NOTES</div><div style={{fontFamily:'Outfit',fontSize:14,color:C.text,lineHeight:1.55}}>{game.notes}</div></div>}
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={()=>setEditing(true)} style={{flex:1,background:C.acc,borderRadius:12,padding:13,fontFamily:'Outfit',fontWeight:700,fontSize:15,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><IconEdit size={16}/> Modifier</button>
+          <button onClick={()=>setConfirm(true)} style={{background:C.red+'18',border:'1px solid '+C.red+'40',borderRadius:12,padding:'13px 16px',color:C.red}}><IconTrash size={18}/></button>
+        </div>
+        {confirm && <div style={{marginTop:12,background:C.red+'13',border:'1px solid '+C.red+'40',borderRadius:12,padding:14}}>
+          <div style={{fontFamily:'Outfit',fontSize:14,color:C.text,marginBottom:12,textAlign:'center'}}>Supprimer ce jeu ?</div>
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={()=>{updateData(Object.assign({},data,{games:games.filter(g=>g.id!==selectedId)}));navigate('inv');}} style={{flex:1,background:C.red,borderRadius:10,padding:10,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:'#fff'}}>Supprimer</button>
+            <button onClick={()=>setConfirm(false)} style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:10,fontFamily:'Outfit',fontSize:14,color:C.muted}}>Annuler</button>
+          </div>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Game Picker ─── */
+function GPicker({games,selected,onToggle}) {
+  if(!games||!games.length) return <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,textAlign:'center',padding:'16px 0'}}>Tous les jeux sont deja dans un lot.</div>;
+  return (
+    <div style={{maxHeight:260,overflowY:'auto',display:'flex',flexDirection:'column',gap:8}}>
+      {games.map(g => {
+        const sel = selected.includes(g.id);
+        const platC = PLC[g.platform]||'#444';
+        return (
+          <div key={g.id} onClick={()=>onToggle(g.id)} style={{background:sel?C.acc+'15':C.card,border:'1px solid '+(sel?C.acc:C.border),borderRadius:10,padding:'10px 12px',cursor:'pointer',display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:18,height:18,borderRadius:5,border:'2px solid '+(sel?C.acc:C.muted),background:sel?C.acc:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{sel&&<IconChk size={12} style={{color:'#000'}}/>}</div>
+            <div style={{width:3,height:32,background:platC,borderRadius:2,flexShrink:0}}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{g.title||'Sans titre'}</div>
+              <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>{g.platform}{g.condition?' - '+g.condition:''}</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── Lots List ─── */
+function LotsScreen({data,navigate,updateData}) {
+  const games=data.games||[], lots=data.lots||[];
+  const [showF,setShowF]=useState(false);
+  const [form,setForm]=useState({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock'});
+  const upF=(k,v)=>setForm(prev=>Object.assign({},prev,{[k]:v}));
+  const free=games.filter(g=>!g.lotId);
+  const [sel,setSel]=useState([]);
+  const togSel=id=>setSel(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
+  const lp=lP(form), lpc=lp>0?C.green:lp<0?C.red:C.muted;
+  function saveLot() {
+    if(!form.name.trim()) return;
+    const nl=Object.assign({id:uid(),createdAt:ts()},form);
+    updateData(Object.assign({},data,{lots:[...lots,nl],games:games.map(g=>sel.includes(g.id)?Object.assign({},g,{lotId:nl.id}):g)}));
+    setShowF(false); setForm({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock'}); setSel([]);
+  }
+  const stC={Vendu:C.green,Reserve:C.blue,'En stock':'#555'};
+  return (
+    <div style={{paddingBottom:90}} className="su">
+      <div style={{padding:'28px 16px 16px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)',display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+        <div><div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Lots</div><div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>{lots.length} lot{lots.length!==1?'s':''}</div></div>
+        <button onClick={()=>{setShowF(v=>!v);setSel([]);}} style={{background:showF?C.card2:C.acc,border:'1px solid '+(showF?C.border:C.acc),borderRadius:12,padding:'8px 14px',display:'flex',alignItems:'center',gap:8,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:showF?C.muted:'#000'}}>
+          {showF?<><IconX size={15}/> Annuler</>:<><IconPlus size={15}/> Nouveau lot</>}
+        </button>
+      </div>
+      {showF && <div className="fi" style={{margin:'0 16px 14px',background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16}}>
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:16,fontWeight:700,color:C.text,marginBottom:16}}>Nouveau lot</div>
+        <Lbl t="NOM *"/><Inp value={form.name} onChange={v=>upF('name',v)} placeholder="Ex: Lot PS4 Juillet"/><Gap/>
+        <div style={{background:C.card,border:'1px solid '+C.border,borderRadius:12,padding:14,marginBottom:14}}>
+          <Lbl t="PRIX DU LOT"/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+            <div><Lbl t="Achat total"/><Inp value={form.prixAchat} onChange={v=>upF('prixAchat',v)} placeholder="0.00" type="number" mono={true}/></div>
+            <div><Lbl t="Vente totale"/><Inp value={form.prixVente} onChange={v=>upF('prixVente',v)} placeholder="0.00" type="number" mono={true}/></div>
+            <div><Lbl t="Frais port"/><Inp value={form.fraisPort} onChange={v=>upF('fraisPort',v)} placeholder="0.00" type="number" mono={true}/></div>
+            <div><Lbl t="Frais plat. %"/><Inp value={form.tauxFrais} onChange={v=>upF('tauxFrais',v)} placeholder="ex: 13" type="number" mono={true}/></div>
+          </div>
+          {(form.prixAchat||form.prixVente) && <div style={{background:C.bg,borderRadius:10,padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice estime</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:lpc}}>{lp>=0?'+':''}{fmt(lp)}</span></div>}
+        </div>
+        <div style={{marginBottom:14}}><Lbl t="STATUT"/><Sel value={form.status} onChange={v=>upF('status',v)}><option value="En stock">En stock</option><option value="Vendu">Vendu</option><option value="Reserve">Reserve</option></Sel></div>
+        <Lbl t="NOTES"/><textarea value={form.notes} onChange={e=>upF('notes',e.target.value)} placeholder="Description..." style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'10px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:54,outline:'none',marginBottom:14}}/>
+        <div style={{marginBottom:14}}>
+          <Lbl t={'JEUX A AJOUTER '+(sel.length?'('+sel.length+' sel.)':'')}/>
+          <GPicker games={free} selected={sel} onToggle={togSel}/>
+        </div>
+        <button onClick={saveLot} style={{width:'100%',background:C.acc,borderRadius:10,padding:12,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+          <IconChk size={16}/> Creer{sel.length?' avec '+sel.length+' jeu'+(sel.length>1?'x':''):''}
+        </button>
+      </div>}
+      <div style={{padding:'4px 16px'}}>
+        {!lots.length && !showF && <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Aucun lot - creez-en un</div>}
+        {lots.map(lot => {
+          const lg=games.filter(g=>g.lotId===lot.id), p=lP(lot), pc=p>0?C.green:p<0?C.red:C.muted;
+          return (
+            <div key={lot.id} onClick={()=>navigate('ld',lot.id)} className="gc" style={{background:C.card,border:'1px solid '+C.border,borderRadius:14,padding:'15px 16px',marginBottom:10,cursor:'pointer'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                <div>
+                  <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.text,marginBottom:3}}>{lot.name}</div>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontFamily:'Outfit',fontSize:12,color:C.muted}}>{lg.length} jeu{lg.length!==1?'x':''}</span>{lot.status&&<span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:(stC[lot.status]||'#555')+'20',color:stC[lot.status]||C.muted,fontWeight:500}}>{lot.status}</span>}</div>
+                </div>
+                <div style={{textAlign:'right'}}><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:18,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:1}}>{fmt(lot.prixAchat)}&rarr;{fmt(lot.prixVente)}</div></div>
+              </div>
+              {lot.notes && <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted}}>{lot.notes}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Lot Detail ─── */
+function LotDetail({data,selectedId,navigate,updateData}) {
+  const games=data.games||[], lots=data.lots||[];
+  const lot=lots.find(l=>l.id===selectedId);
+  const [editing,setEditing]=useState(false), [ef,setEf]=useState(null), [confirm,setConfirm]=useState(false);
+  const [showPick,setShowPick]=useState(false), [pickSel,setPickSel]=useState([]);
+  if(!lot) return <div style={{padding:48,textAlign:'center',color:C.muted,fontFamily:'Outfit'}}>Lot introuvable</div>;
+  const lotG=games.filter(g=>g.lotId===lot.id), free=games.filter(g=>!g.lotId);
+  const p=lP(lot), pc=p>0?C.green:p<0?C.red:C.muted;
+  const stC={Vendu:C.green,Reserve:C.blue,'En stock':'#555'};
+  const delLot=()=>{updateData(Object.assign({},data,{lots:lots.filter(l=>l.id!==selectedId),games:games.map(g=>g.lotId===selectedId?Object.assign({},g,{lotId:'',status:'En stock'}):g)}));navigate('lots');};
+  const remG=gid=>updateData(Object.assign({},data,{games:games.map(g=>g.id===gid?Object.assign({},g,{lotId:'',status:'En stock'}):g)}));
+  const addG=()=>{updateData(Object.assign({},data,{games:games.map(g=>pickSel.includes(g.id)?Object.assign({},g,{lotId:selectedId}):g)}));setShowPick(false);setPickSel([]);};
+  const togP=id=>setPickSel(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
+  const startEdit=()=>{setEf({name:lot.name,prixAchat:lot.prixAchat||'',prixVente:lot.prixVente||'',fraisPort:lot.fraisPort||'',tauxFrais:lot.tauxFrais||'',notes:lot.notes||'',status:lot.status||'En stock'});setEditing(true);};
+  const saveEdit=()=>{updateData(Object.assign({},data,{lots:lots.map(l=>l.id===selectedId?Object.assign({},l,ef):l)}));setEditing(false);};
+  const upE=(k,v)=>setEf(prev=>Object.assign({},prev,{[k]:v}));
+  return (
+    <div style={{paddingBottom:40}} className="su">
+      <div style={{padding:'28px 16px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
+        <button onClick={()=>navigate('lots')} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}><IconLeft size={15}/> Lots</button>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+          <div>
+            <div style={{display:'inline-block',padding:'3px 10px',borderRadius:20,background:C.acc2,color:C.acc,fontFamily:'Outfit',fontSize:12,fontWeight:600,marginBottom:8}}>Lot</div>
+            <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>{lot.name}</div>
+            {lot.status && <span style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:(stC[lot.status]||'#555')+'25',color:stC[lot.status]||C.muted,fontFamily:'Outfit',fontWeight:500,marginTop:6,display:'inline-block'}}>{lot.status}</span>}
+          </div>
+          <button onClick={startEdit} style={{background:C.card2,border:'1px solid '+C.border,borderRadius:12,padding:'8px 12px',display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13}}><IconEdit size={14}/> Modifier</button>
+        </div>
+      </div>
+      <div style={{padding:'0 16px'}}>
+        {editing && ef && <div className="fi" style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16,marginBottom:14}}>
+          <div style={{fontFamily:'Syne,sans-serif',fontSize:15,fontWeight:700,color:C.text,marginBottom:14}}>Modifier le lot</div>
+          <Lbl t="NOM"/><Inp value={ef.name} onChange={v=>upE('name',v)} placeholder="Nom du lot"/><Gap h={10}/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+            <div><Lbl t="Achat"/><Inp value={ef.prixAchat} onChange={v=>upE('prixAchat',v)} placeholder="0.00" type="number" mono={true}/></div>
+            <div><Lbl t="Vente"/><Inp value={ef.prixVente} onChange={v=>upE('prixVente',v)} placeholder="0.00" type="number" mono={true}/></div>
+            <div><Lbl t="Port"/><Inp value={ef.fraisPort} onChange={v=>upE('fraisPort',v)} placeholder="0.00" type="number" mono={true}/></div>
+            <div><Lbl t="Frais %"/><Inp value={ef.tauxFrais} onChange={v=>upE('tauxFrais',v)} placeholder="ex:13" type="number" mono={true}/></div>
+          </div>
+          {(()=>{const ep=lP(ef),epc=ep>0?C.green:ep<0?C.red:C.muted;return <div style={{background:C.bg,borderRadius:10,padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:epc}}>{ep>=0?'+':''}{fmt(ep)}</span></div>})()}
+          <Lbl t="STATUT"/><Sel value={ef.status} onChange={v=>upE('status',v)}><option value="En stock">En stock</option><option value="Vendu">Vendu</option><option value="Reserve">Reserve</option></Sel><Gap h={10}/>
+          <Lbl t="NOTES"/><textarea value={ef.notes} onChange={e=>upE('notes',e.target.value)} placeholder="Notes..." style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'9px 12px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:54,outline:'none',marginBottom:12}}/>
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={saveEdit} style={{flex:1,background:C.acc,borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}><IconChk size={15}/> Enregistrer</button>
+            <button onClick={()=>setEditing(false)} style={{background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'11px 16px',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Annuler</button>
+          </div>
+        </div>}
+        <div style={{background:'linear-gradient(135deg,'+pc+'18,'+pc+'06)',border:'1px solid '+pc+'35',borderRadius:16,padding:18,marginBottom:14}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+            {[['ACHAT LOT',fmt(lot.prixAchat)],['VENTE LOT',fmt(lot.prixVente)],['FRAIS PORT',fmt(lot.fraisPort)],['JEUX',''+lotG.length]].map(([k,v])=>(
+              <div key={k}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,letterSpacing:.5,marginBottom:4}}>{k}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:C.text}}>{v}</div></div>
+            ))}
+          </div>
+          <div style={{borderTop:'1px solid '+pc+'30',paddingTop:14,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice net du lot</span>
+            <span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:26,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</span>
+          </div>
+        </div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <div style={{fontFamily:'Syne,sans-serif',fontSize:16,fontWeight:700,color:C.text}}>Jeux ({lotG.length})</div>
+          <button onClick={()=>{setShowPick(v=>!v);setPickSel([]);}} style={{background:showPick?C.card2:C.acc2,border:'1px solid '+(showPick?C.border:C.acc)+'50',borderRadius:10,padding:'6px 12px',display:'flex',alignItems:'center',gap:6,fontFamily:'Outfit',fontWeight:600,fontSize:12,color:showPick?C.muted:C.acc}}>
+            {showPick?<><IconX size={13}/> Annuler</>:<><IconUPlus size={13}/> Ajouter des jeux</>}
+          </button>
+        </div>
+        {showPick && <div className="fi" style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:14,marginBottom:14}}>
+          <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:10}}>{free.length} jeu{free.length!==1?'x':''} disponible{free.length!==1?'s':''}</div>
+          <GPicker games={free} selected={pickSel} onToggle={togP}/>
+          {free.length>0 && <button onClick={addG} disabled={!pickSel.length} style={{width:'100%',marginTop:12,background:pickSel.length?C.acc:'#2a2a3a',borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:pickSel.length?'#000':C.muted,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+            <IconChk size={15}/> Ajouter {pickSel.length?pickSel.length+' jeu'+(pickSel.length>1?'x':''):''}
+          </button>}
+        </div>}
+        {!lotG.length && !showPick && <div style={{textAlign:'center',padding:'20px 0',color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:10}}>Aucun jeu - utilisez Ajouter des jeux.</div>}
+        {lotG.map(g=><GCard key={g.id} game={Object.assign({},g,{lotId:''})} lots={[]} onClick={()=>navigate('gd',g.id)} right={<button onClick={e=>{e.stopPropagation();remG(g.id);}} style={{padding:8,color:C.red+'99',flexShrink:0}}><IconMinus size={20}/></button>}/>)}
+        <Gap h={16}/>
+        <button onClick={()=>setConfirm(true)} style={{width:'100%',background:C.red+'14',border:'1px solid '+C.red+'40',borderRadius:12,padding:13,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:C.red,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><IconTrash size={16}/> Supprimer ce lot</button>
+        {confirm && <div style={{marginTop:10,background:C.red+'12',border:'1px solid '+C.red+'40',borderRadius:12,padding:14}}>
+          <div style={{fontFamily:'Outfit',fontSize:13,color:C.text,marginBottom:12,textAlign:'center'}}>Les jeux seront remis en stock.</div>
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={delLot} style={{flex:1,background:C.red,borderRadius:10,padding:10,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:'#fff'}}>Confirmer</button>
+            <button onClick={()=>setConfirm(false)} style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:10,fontFamily:'Outfit',fontSize:14,color:C.muted}}>Annuler</button>
+          </div>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Bottom Nav ─── */
+function Nav({screen,navigate}) {
+  const tabs=[{id:'home',label:'Accueil',Icon:IconHome},{id:'inv',label:'Inventaire',Icon:IconList},{id:'add',label:'Ajouter',Icon:IconPlus,acc:true},{id:'lots',label:'Lots',Icon:IconLayers}];
+  return (
+    <div style={{position:'fixed',bottom:0,left:0,right:0,background:C.card,borderTop:'1px solid '+C.border,display:'flex',padding:'10px 0 18px',zIndex:100}}>
+      {tabs.map(({id,label,Icon,acc}) => {
+        const active=screen===id;
+        return (
+          <button key={id} onClick={()=>navigate(id)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+            <div style={{width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:13,background:acc?(active?C.acc:C.acc2):'transparent'}}>
+              <Icon size={20} style={{color:acc?C.acc:(active?C.acc:C.muted)}}/>
+            </div>
+            <span style={{fontFamily:'Outfit',fontSize:10,fontWeight:500,color:active?C.acc:C.muted}}>{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── App ─── */
+function App() {
+  const [data,setData] = useState(() => loadData());
+  const [screen,setScreen] = useState('home');
+  const [selId,setSelId] = useState(null);
+  const updateData = useCallback(d => { setData(d); saveData(d); }, []);
+  const navigate = (sc,id) => { setScreen(sc); setSelId(id||null); window.scrollTo(0,0); };
+  function handleAddSave(g) {
+    const games = data.games||[];
+    const exists = games.find(x=>x.id===g.id);
+    updateData(Object.assign({},data,{games:exists?games.map(x=>x.id===g.id?g:x):[...games,g]}));
+    navigate('inv');
+  }
+  const noNav = ['add','gd','ld'];
+  const p = {data,navigate,selectedId:selId,updateData};
+  return (
+    <div style={{fontFamily:'Outfit,sans-serif',background:C.bg,minHeight:'100vh',color:C.text}}>
+      {screen==='home' && <HomeScreen {...p}/>}
+      {screen==='inv'  && <InvScreen {...p}/>}
+      {screen==='add'  && <GameForm lots={data.lots||[]} onBack={()=>navigate('inv')} onSave={handleAddSave}/>}
+      {screen==='gd'   && <GameDetail {...p}/>}
+      {screen==='lots' && <LotsScreen {...p}/>}
+      {screen==='ld'   && <LotDetail {...p}/>}
+      {!noNav.includes(screen) && <Nav screen={screen} navigate={navigate}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
