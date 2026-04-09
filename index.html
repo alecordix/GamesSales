@@ -310,10 +310,14 @@ function Scanner({ onDetect, onClose }) {
 /* ══════ HOME ══════ */
 function HomeScreen({data,navigate}){
   const {games=[],lots=[]}=data;
-  const sold=games.filter(g=>g.status==='Vendu'&&!g.lotId);
+  const soldLots=lots.filter(l=>l.status==='Vendu');
+  const soldLotIds=new Set(soldLots.map(l=>l.id));
+  const soldSolo=games.filter(g=>g.status==='Vendu'&&!g.lotId);
+  const soldInLots=games.filter(g=>g.lotId&&soldLotIds.has(g.lotId));
+  const sold=[...soldSolo,...soldInLots];
   const totalBuy=games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixAchat||0),0)+lots.reduce((s,l)=>s+parseFloat(l.prixAchat||0),0);
-  const totalSell=sold.reduce((s,g)=>s+parseFloat(g.prixVente||0),0)+lots.filter(l=>l.status==='Vendu').reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
-  const totalProfit=sold.reduce((s,g)=>s+calcGameProfit(g),0)+lots.filter(l=>l.status==='Vendu').reduce((s,l)=>s+calcLotProfit(l),0);
+  const totalSell=soldSolo.reduce((s,g)=>s+parseFloat(g.prixVente||0),0)+soldLots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
+  const totalProfit=soldSolo.reduce((s,g)=>s+calcGameProfit(g),0)+soldLots.reduce((s,l)=>s+calcLotProfit(l),0);
   const inStock=games.filter(g=>g.status!=='Vendu'&&!g.lotId).length;
   const recent=[...games].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,5);
   const stats=[{label:'INVESTI',val:fmt(totalBuy)},{label:'EN STOCK',val:`${inStock} jeux`},{label:'REVENUS',val:fmt(totalSell)},{label:'BÉNÉFICE',val:fmt(totalProfit),col:totalProfit>=0?C.green:C.red}];
