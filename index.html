@@ -280,8 +280,6 @@ function HomeScreen({data,navigate}) {
   const totalBenef = totalRevenus - totalInvesti;
   // Potentiel global = tous les prix de vente renseignés (lots + jeux individuels, tous statuts)
   const totalPotentiel = games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixVente||0),0) + lots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
-  // Potentiel global = tous les prix de vente renseignés (lots + jeux individuels, tous statuts)
-  const totalPotentiel = games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixVente||0),0) + lots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
   const recent = [...games].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,5);
   return (
     <div style={{paddingBottom:90}} className="su">
