@@ -146,8 +146,6 @@ function loadData() {
   }
 }
 function saveData(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) {} }
-function getRawgKey() { return localStorage.getItem('rawg-key') || ''; }
-function setRawgKey(k) { localStorage.setItem('rawg-key', k); }
 
 // ── UPC Lookup ─────────────────────────────────────────────────────
 async function upcLookup(code) {
@@ -164,7 +162,7 @@ async function upcLookup(code) {
   return null;
 }
 
-// ── RAWG Game Search ───────────────────────────────────────────────
+// ── Game Search (TheGamesDB + RAWG fallback) ──────────────────────
 var RAWG_PLAT_MAP = {4:'PC',187:'PS5',18:'PS4',16:'PS3',15:'PS2',6:'Xbox 360',1:'Xbox One',186:'Xbox Series',7:'Switch',8:'DS',9:'3DS',11:'Wii',105:'Wii U'};
 function rawgPlatform(platforms) {
   if (!platforms || !platforms.length) return '';
@@ -174,9 +172,60 @@ function rawgPlatform(platforms) {
   }
   return '';
 }
-async function searchGames(query) {
-  var key = getRawgKey();
-  if (!key || !query || query.length < 2) return [];
+
+// TheGamesDB platform IDs
+var TGDB_PLAT_MAP = {
+  1:'PC', 4928:'PS5', 4919:'PS4', 4914:'PS3', 11:'PS2', 10:'PS1',
+  4920:'Xbox One', 4916:'Xbox 360', 4922:'Xbox Series',
+  4924:'Switch', 4971:'Wii U', 9:'Wii',
+  4912:'3DS', 8:'DS', 4911:'GBA'
+};
+function tgdbPlatform(plats) {
+  if (!plats || !plats.length) return '';
+  for (var i=0; i<plats.length; i++) {
+    if (TGDB_PLAT_MAP[plats[i]]) return TGDB_PLAT_MAP[plats[i]];
+  }
+  return '';
+}
+
+function getTGDBKey()  { return localStorage.getItem('tgdb-key') || ''; }
+function setTGDBKey(k) { localStorage.setItem('tgdb-key', k); }
+function getRawgKey()  { return localStorage.getItem('rawg-key') || ''; }
+function setRawgKey(k) { localStorage.setItem('rawg-key', k); }
+
+// TheGamesDB — meilleure couverture rétro (PS2, Xbox 360, Wii...)
+async function searchTGDB(query, key) {
+  try {
+    var url = 'https://api.thegamesdb.net/v1/Games/ByGameName'
+      + '?apikey=' + encodeURIComponent(key)
+      + '&name=' + encodeURIComponent(query)
+      + '&fields=platform,release_date,thumb'
+      + '&include=boxart'
+      + '&page=1';
+    var r = await fetch(url, {signal: AbortSignal.timeout(6000)});
+    if (!r.ok) return [];
+    var d = await r.json();
+    if (!d.data || !d.data.games) return [];
+    var boxarts = (d.include && d.include.boxart && d.include.boxart.data) || {};
+    return d.data.games.slice(0,6).map(function(g) {
+      var img = '';
+      if (boxarts[g.id] && boxarts[g.id].length) {
+        var base = (d.include.boxart.base_url && d.include.boxart.base_url.thumb) || '';
+        img = base + boxarts[g.id][0].filename;
+      }
+      var year = g.release_date ? g.release_date.slice(0,4) : '';
+      return {
+        title: g.game_title,
+        platform: tgdbPlatform(g.platforms || []),
+        image: img,
+        released: year
+      };
+    });
+  } catch(e) { return []; }
+}
+
+// RAWG fallback
+async function searchRAWG(query, key) {
   try {
     var url = 'https://api.rawg.io/api/games?search=' + encodeURIComponent(query) + '&page_size=6&key=' + encodeURIComponent(key);
     var r = await fetch(url, {signal: AbortSignal.timeout(5000)});
@@ -187,6 +236,23 @@ async function searchGames(query) {
     });
   } catch(e) { return []; }
 }
+
+async function searchGames(query) {
+  if (!query || query.length < 2) return [];
+  var tgdbKey = getTGDBKey();
+  var rawgKey = getRawgKey();
+  if (!tgdbKey && !rawgKey) return [];
+  if (tgdbKey) {
+    var res = await searchTGDB(query, tgdbKey);
+    if (res.length > 0) return res;
+  }
+  if (rawgKey) {
+    return await searchRAWG(query, rawgKey);
+  }
+  return [];
+}
+
+function hasAnyKey() { return !!(getTGDBKey() || getRawgKey()); }
 
 // ── CSV ────────────────────────────────────────────────────────────
 function exportCSV(games, lots) {
@@ -328,13 +394,7 @@ function TitleInput({value, onChange, onSelect}) {
     onSelect(s);
   }
 
-  function saveKey() {
-    if (keyDraft.trim()) {
-      setRawgKey(keyDraft.trim());
-      setKeyDraft('');
-      setShowKeyInput(false);
-    }
-  }
+  function saveKey() {} // handled inline
 
   var hasKey = !!getRawgKey();
 
@@ -358,11 +418,8 @@ function TitleInput({value, onChange, onSelect}) {
       {/* No key configured hint */}
       {!hasKey && !showKeyInput && value.length >= 2 && (
         <div style={{marginTop:6,display:'flex',alignItems:'center',gap:8}}>
-          <span style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Autocompletion disponible avec une cle RAWG gratuite</span>
-          <button
-            onClick={function(){ setShowKeyInput(true); }}
-            style={{fontFamily:'Outfit',fontSize:11,color:C.acc,fontWeight:600,textDecoration:'underline'}}
-          >
+          <span style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Configurez une cle API pour l autocompletion</span>
+          <button onClick={function(){ setShowKeyInput(true); }} style={{fontFamily:'Outfit',fontSize:11,color:C.acc,fontWeight:600,textDecoration:'underline'}}>
             Configurer
           </button>
         </div>
@@ -371,18 +428,32 @@ function TitleInput({value, onChange, onSelect}) {
       {/* Key input form */}
       {showKeyInput && (
         <div className="fi" style={{marginTop:8,background:C.card,border:'1px solid '+C.acc+'50',borderRadius:10,padding:12}}>
-          <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:8,lineHeight:1.6}}>
-            Cle gratuite sur rawg.io/apidocs (inscription 30 sec)
+          <div style={{fontFamily:'Syne,sans-serif',fontSize:13,fontWeight:700,color:C.text,marginBottom:10}}>Configurer l autocompletion</div>
+
+          <div style={{background:C.card2,borderRadius:8,padding:10,marginBottom:10}}>
+            <div style={{fontFamily:'Outfit',fontSize:12,color:C.acc,fontWeight:600,marginBottom:2}}>TheGamesDB (recommande)</div>
+            <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6}}>Cle gratuite sur thegamesdb.net/register</div>
+            <div style={{display:'flex',gap:8}}>
+              <input id="tgdb-input" placeholder="Cle TheGamesDB..." defaultValue={getTGDBKey()}
+                style={{flex:1,background:C.bg,border:'1px solid '+C.border,borderRadius:7,padding:'7px 10px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:11,outline:'none'}}/>
+              <button onClick={function(){
+                var inp = document.getElementById('tgdb-input');
+                if(inp && inp.value.trim()){ setTGDBKey(inp.value.trim()); setShowKeyInput(false); }
+              }} style={{background:C.acc,borderRadius:7,padding:'7px 10px',color:'#000',fontFamily:'Outfit',fontWeight:700,fontSize:11}}>OK</button>
+            </div>
           </div>
-          <div style={{display:'flex',gap:8}}>
-            <input
-              value={keyDraft}
-              onChange={function(e){ setKeyDraft(e.target.value); }}
-              onKeyDown={function(e){ if(e.key==='Enter') saveKey(); }}
-              placeholder="Coller la cle API ici..."
-              style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:8,padding:'8px 10px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:12,outline:'none'}}
-            />
-            <button onClick={saveKey} style={{background:C.acc,borderRadius:8,padding:'8px 12px',color:'#000',fontFamily:'Outfit',fontWeight:700,fontSize:12}}>OK</button>
+
+          <div style={{background:C.card2,borderRadius:8,padding:10}}>
+            <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,fontWeight:600,marginBottom:2}}>RAWG (alternative)</div>
+            <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6}}>Cle gratuite sur rawg.io/apidocs</div>
+            <div style={{display:'flex',gap:8}}>
+              <input id="rawg-input" placeholder="Cle RAWG..." defaultValue={getRawgKey()}
+                style={{flex:1,background:C.bg,border:'1px solid '+C.border,borderRadius:7,padding:'7px 10px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:11,outline:'none'}}/>
+              <button onClick={function(){
+                var inp = document.getElementById('rawg-input');
+                if(inp && inp.value.trim()){ setRawgKey(inp.value.trim()); setShowKeyInput(false); }
+              }} style={{background:C.card,border:'1px solid '+C.border,borderRadius:7,padding:'7px 10px',color:C.muted,fontFamily:'Outfit',fontWeight:700,fontSize:11}}>OK</button>
+            </div>
           </div>
         </div>
       )}
