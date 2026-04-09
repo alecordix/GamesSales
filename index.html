@@ -961,7 +961,7 @@ function HomeScreen({data, navigate}) {
 
   return (
     <div style={{paddingBottom:90}} className="su">
-      <div style={{padding:'36px 20px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
+      <div style={{padding:'36px 20px 20px',position:'sticky',top:0,zIndex:50,background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
         <div style={{fontFamily:'Syne,sans-serif',fontSize:30,fontWeight:800,color:C.text,letterSpacing:-.5,marginBottom:2}}>GameTrack</div>
         <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginBottom:16}}>Suivi revente jeux video</div>
         <div style={{display:'flex',gap:8}}>
@@ -1048,7 +1048,7 @@ function InvScreen({data, navigate, updateData}) {
 
   return (
     <div style={{paddingBottom:90}} className="su">
-      <div style={{padding:'28px 16px 14px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
+      <div style={{padding:'28px 16px 14px',position:'sticky',top:0,zIndex:50,background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Inventaire</div>
           <div style={{display:'flex',gap:8}}>
@@ -1440,7 +1440,7 @@ function LotsScreen({data, navigate, updateData}) {
 
   return (
     <div style={{paddingBottom:90}} className="su">
-      <div style={{padding:'28px 16px 16px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)',display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+      <div style={{position:'sticky',top:0,zIndex:50,padding:'28px 16px 16px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)',display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
         <div>
           <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Lots</div>
           <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>{lots.length} lot{lots.length!==1?'s':''}</div>
@@ -1744,7 +1744,7 @@ function StatsScreen({data}) {
 
   return (
     <div style={{paddingBottom:90}} className="su">
-      <div style={{padding:'28px 16px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
+      <div style={{padding:'28px 16px 20px',position:'sticky',top:0,zIndex:50,background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
         <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Statistiques</div>
         <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>Analyse de tes ventes</div>
       </div>
