@@ -151,6 +151,126 @@ async function upcLookup(code) {
   return null;
 }
 
+/* ─── Game Search Autocomplete (RAWG API) ─── */
+// Mapping plateformes RAWG → noms app
+const RAWG_PLAT_MAP = {
+  4:'PC', 187:'PS5', 18:'PS4', 16:'PS3', 15:'PS2', 6:'Xbox 360',
+  1:'Xbox One', 186:'Xbox Series', 7:'Switch', 8:'DS', 9:'3DS',
+  11:'Wii', 105:'Wii U', 21:'Wii', 10:'Wii'
+};
+function rawgPlatform(platforms) {
+  if(!platforms||!platforms.length) return '';
+  for(const p of platforms) {
+    const mapped = RAWG_PLAT_MAP[p.platform && p.platform.id];
+    if(mapped) return mapped;
+  }
+  return '';
+}
+
+function getRawgKey() { return localStorage.getItem('rawg-key')||''; }
+
+async function searchGames(query) {
+  if(!query || query.length < 2) return [];
+  const key = getRawgKey();
+  if(!key) return [];
+  try {
+    const url = 'https://api.rawg.io/api/games?search=' + encodeURIComponent(query) + '&page_size=6&key=' + key;
+    const r = await fetch(url, {signal: AbortSignal.timeout(4000)});
+    if(!r.ok) return [];
+    const d = await r.json();
+    return (d.results||[]).map(g => ({
+      title: g.name,
+      platform: rawgPlatform(g.platforms),
+      image: g.background_image || '',
+      released: g.released ? g.released.slice(0,4) : ''
+    }));
+  } catch(e) { return []; }
+}
+
+function GameTitleInput({value, onChange, onSelectSuggestion}) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const debounceRef = useRef(null);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    if(!value || value.length < 2) { setSuggestions([]); setOpen(false); return; }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      const results = await searchGames(value);
+      setSuggestions(results);
+      setOpen(results.length > 0);
+      setLoading(false);
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [value]);
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e) { if(wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  function select(s) {
+    setOpen(false);
+    setSuggestions([]);
+    onSelectSuggestion(s);
+  }
+
+  return (
+    <div ref={wrapRef} style={{position:'relative'}}>
+      <div style={{position:'relative'}}>
+        <input
+          value={value}
+          onChange={e => { onChange(e.target.value); }}
+          onFocus={() => { if(suggestions.length>0) setOpen(true); }}
+          placeholder="Ex: The Last of Us Part II"
+          style={{...IS, paddingRight: loading ? 40 : 14}}
+        />
+        {loading && <div style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)'}}><IconLoad size={15} style={{color:C.muted,animation:'spin 1s linear infinite'}}/></div>}
+      </div>
+      {!getRawgKey() && value.length >= 2 && (
+        <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,background:C.card,border:'1px solid '+C.acc+'50',borderRadius:12,zIndex:200,padding:'12px 14px',boxShadow:'0 8px 32px rgba(0,0,0,.7)'}}>
+          <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:C.text,marginBottom:4}}>Autocompletion non configuree</div>
+          <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,lineHeight:1.6,marginBottom:8}}>
+            1. Creez un compte gratuit sur <span style={{color:C.acc}}>rawg.io/apidocs</span>{'
+'}
+            2. Copiez votre cle API{'
+'}
+            3. Collez-la ci-dessous
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <input placeholder="Coller la cle RAWG ici..." onKeyDown={e=>{if(e.key==='Enter'&&e.target.value.trim()){localStorage.setItem('rawg-key',e.target.value.trim());setOpen(false);}}} style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:8,padding:'8px 10px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:12,outline:'none'}}/>
+            <button onMouseDown={e=>{e.preventDefault();const inp=e.target.previousSibling;if(inp.value.trim()){localStorage.setItem('rawg-key',inp.value.trim());setOpen(false);}}} style={{background:C.acc,borderRadius:8,padding:'8px 12px',color:'#000',fontFamily:'Outfit',fontWeight:700,fontSize:12}}>OK</button>
+          </div>
+        </div>
+      )}
+      {open && suggestions.length > 0 && (
+        <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,background:C.card,border:'1px solid '+C.acc+'60',borderRadius:12,zIndex:200,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,.7)'}}>
+          {suggestions.map((s,i) => (
+            <div key={i} onMouseDown={()=>select(s)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',cursor:'pointer',borderBottom:i<suggestions.length-1?'1px solid '+C.border:'none',background:'transparent'}}
+              onMouseEnter={e=>e.currentTarget.style.background=C.card2}
+              onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+            >
+              {s.image && <img src={s.image} alt="" style={{width:38,height:28,objectFit:'cover',borderRadius:5,flexShrink:0}}/>}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.title}</div>
+                <div style={{display:'flex',gap:6,marginTop:2}}>
+                  {s.platform && <span style={{fontFamily:'Outfit',fontSize:10,color:C.acc}}>{s.platform}</span>}
+                  {s.released && <span style={{fontFamily:'Outfit',fontSize:10,color:C.muted}}>{s.released}</span>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── CSV Export ─── */
 function exportCSV(games, lots) {
   const lm = {};
@@ -396,7 +516,19 @@ function GameForm({init,lots,onSave,onBack}) {
           {g.image && <img src={g.image} alt="" style={{width:44,height:44,borderRadius:6,objectFit:'contain',background:'#fff'}}/>}
           <div><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Code scanne</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{g.barcode}</div></div>
         </div>}
-        <Lbl t="TITRE *"/><Inp value={g.title} onChange={v=>upd('title',v)} placeholder="Ex: The Last of Us Part II"/>
+        <Lbl t="TITRE *"/>
+        <GameTitleInput
+          value={g.title}
+          onChange={v=>upd('title',v)}
+          onSelectSuggestion={s=>{
+            setG(prev=>Object.assign({},prev,{
+              title:s.title,
+              platform:s.platform||prev.platform,
+              image:s.image||prev.image
+            }));
+            setLkSt('idle');
+          }}
+        />
         <Gap/>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
           <div><Lbl t="PLATEFORME"/><Sel value={g.platform} onChange={v=>upd('platform',v)}><option value="">Choisir...</option>{PLATS.map(p=><option key={p} value={p}>{p}</option>)}</Sel></div>
@@ -599,7 +731,19 @@ function InlineLotGameForm({onClose,onSave}) {
         {lkSt==='loading'?<IconLoad size={15} style={{animation:'spin 1s linear infinite'}}/>:lkSt==='ok'?<IconChk size={15}/>:<IconCam size={15}/>}
         {lkSt==='loading'?'Recherche...':lkSt==='ok'?'Trouve ! (re-scanner)':'Scanner le code-barre'}
       </button>
-      <Lbl t="TITRE *"/><Inp value={g.title} onChange={v=>upd('title',v)} placeholder="Ex: FIFA 23"/>
+      <Lbl t="TITRE *"/>
+      <GameTitleInput
+        value={g.title}
+        onChange={v=>upd('title',v)}
+        onSelectSuggestion={s=>{
+          setG(prev=>Object.assign({},prev,{
+            title:s.title,
+            platform:s.platform||prev.platform,
+            image:s.image||prev.image
+          }));
+          setLkSt('idle');
+        }}
+      />
       <Gap h={10}/>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
         <div><Lbl t="PLATEFORME"/><Sel value={g.platform||''} onChange={v=>upd('platform',v)}><option value="">Choisir...</option>{PLATS.map(p=><option key={p} value={p}>{p}</option>)}</Sel></div>
