@@ -263,26 +263,49 @@ async function searchGames(query) {
 }
 
 function hasAnyKey() { return !!(getTGDBKey() || getRawgKey()); }
-function getPCKey(){ return localStorage.getItem('pc-key') || ''; }
-function setPCKey(k){ localStorage.setItem('pc-key', k); }
+function getEbayKey(){ return localStorage.getItem('ebay-key') || ''; }
+function setEbayKey(k){ localStorage.setItem('ebay-key', k); }
 
-// PriceCharting: prix marche estimatif (loose = sans boite, cib = complet)
-async function fetchMarketPrice(title, platform) {
-  var key = getPCKey();
+// eBay Browse API — prix annonces actives sur eBay.fr
+// L'API eBay a une restriction CORS : on passe par un proxy CORS public
+async function fetchEbayPrices(title, platform) {
+  var key = getEbayKey();
   if (!key || !title) return null;
   try {
-    var q   = title + (platform ? ' ' + platform : '');
-    var url = 'https://www.pricecharting.com/api/products?q=' + encodeURIComponent(q) + '&status=price&id=' + encodeURIComponent(key);
-    var r   = await fetch(url, {signal: AbortSignal.timeout(6000)});
+    var q = title + (platform ? ' ' + platform : '');
+    // eBay Browse API endpoint
+    var ebayUrl = 'https://api.ebay.com/buy/browse/v1/item_summary/search'
+      + '?q=' + encodeURIComponent(q)
+      + '&limit=10'
+      + '&filter=buyingOptions%3A%7BFIXED_PRICE%7D'
+      + '&sort=price';
+    // Proxy CORS public (allorigins)
+    var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(ebayUrl);
+    var r = await fetch(proxyUrl, {
+      signal: AbortSignal.timeout(8000)
+    });
     if (!r.ok) return null;
-    var d = await r.json();
-    if (!d.products || !d.products.length) return null;
-    var p = d.products[0];
-    return {
-      name:   p['product-name'] || title,
-      loose:  p['loose-price']  ? (p['loose-price']  / 100).toFixed(2) : null,
-      cib:    p['cib-price']    ? (p['cib-price']    / 100).toFixed(2) : null
-    };
+    var wrapper = await r.json();
+    // allorigins retourne {contents: "...json..."}
+    if (!wrapper.contents) return null;
+    var d = JSON.parse(wrapper.contents);
+    if (!d.itemSummaries || !d.itemSummaries.length) return null;
+    var items = d.itemSummaries
+      .filter(function(i){ return i.price && i.price.value; })
+      .map(function(i){
+        return {
+          title:  i.title,
+          price:  parseFloat(i.price.value).toFixed(2),
+          currency: i.price.currency || 'EUR',
+          url:    i.itemWebUrl || ''
+        };
+      });
+    if (!items.length) return null;
+    var prices = items.map(function(i){ return parseFloat(i.price); });
+    var min = Math.min.apply(null, prices).toFixed(2);
+    var max = Math.max.apply(null, prices).toFixed(2);
+    var avg = (prices.reduce(function(a,b){ return a+b; }, 0) / prices.length).toFixed(2);
+    return {items: items.slice(0,5), min: min, max: max, avg: avg, count: items.length};
   } catch(e) { return null; }
 }
 // ── CSV ────────────────────────────────────────────────────────────
@@ -470,61 +493,134 @@ function PhotoCapture({value, onChange}) {
   );
 }
 
-// ── Market Price Widget (Sprint 2) ──────────────────────────────────
+// ── eBay Price Widget (Sprint 2) ──────────────────────────────────
 function MarketPriceWidget({title, platform}) {
-  var [price, setPrice] = useState(null);
+  var [result, setResult]   = useState(null);
   var [loading, setLoading] = useState(false);
-  var [checked, setChecked] = useState(false);
-  var [showKeyInput, setShowKeyInput] = useState(false);
+  var [done, setDone]       = useState(false);
+  var [showKey, setShowKey] = useState(false);
+  var [keyDraft, setKeyDraft] = useState('');
 
   async function lookup() {
-    if (!getPCKey()) { setShowKeyInput(true); return; }
     setLoading(true);
-    var res = await fetchMarketPrice(title, platform);
-    setPrice(res);
-    setChecked(true);
+    var res = await fetchEbayPrices(title, platform);
+    setResult(res);
+    setDone(true);
     setLoading(false);
+  }
+
+  function handleBtn() {
+    if (!getEbayKey()) { setShowKey(true); return; }
+    lookup();
+  }
+
+  function saveKey() {
+    if (!keyDraft.trim()) return;
+    setEbayKey(keyDraft.trim());
+    setKeyDraft('');
+    setShowKey(false);
+    lookup();
   }
 
   if (!title || title.length < 3) return null;
 
+  var purple = '#a855f7';
+  var bg     = 'rgba(168,85,247,.10)';
+  var border = 'rgba(168,85,247,.30)';
+
   return (
     <div style={{marginBottom:14}}>
-      {!checked && !showKeyInput && (
-        <button onClick={lookup} style={{width:'100%',background:'rgba(168,85,247,.12)',border:'1px solid rgba(168,85,247,.4)',borderRadius:10,padding:'10px',display:'flex',alignItems:'center',justifyContent:'center',gap:8,fontFamily:'Outfit',fontWeight:600,fontSize:13,color:'#a855f7'}}>
-          {loading ? <ILoader size={15} style={{animation:'spin 1s linear infinite'}}/> : null}
-          {loading ? 'Recherche prix marche...' : 'Voir le prix marche (PriceCharting)'}
+      {!done && !showKey && (
+        <button onClick={handleBtn}
+          style={{width:'100%',background:bg,border:'1px solid '+border,borderRadius:10,padding:'11px',display:'flex',alignItems:'center',justifyContent:'center',gap:8,fontFamily:'Outfit',fontWeight:600,fontSize:13,color:purple}}>
+          {loading && React.createElement(ILoader,{size:15,style:{color:purple,animation:'spin 1s linear infinite'}})}
+          {loading ? 'Recherche sur eBay...' : 'Voir les prix eBay actuels'}
         </button>
       )}
-      {showKeyInput && (
-        <div className="fi" style={{background:'rgba(168,85,247,.08)',border:'1px solid rgba(168,85,247,.3)',borderRadius:10,padding:12}}>
-          <div style={{fontFamily:'Outfit',fontSize:12,color:'#a855f7',fontWeight:600,marginBottom:4}}>Cle PriceCharting requise</div>
-          <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:8}}>Cle gratuite sur pricecharting.com/api (section API Key)</div>
+
+      {showKey && (
+        <div className="fi" style={{background:bg,border:'1px solid '+border,borderRadius:10,padding:14}}>
+          <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:purple,marginBottom:4}}>
+            Cle eBay Developer requise (gratuite)
+          </div>
+          <div style={{fontFamily:'Outfit',fontSize:11,color:'#9090b0',lineHeight:1.8,marginBottom:10}}>
+            1. Va sur developer.ebay.com/signin{'
+'}
+            2. Cree un compte gratuit (pas besoin de compte vendeur){'
+'}
+            3. Cree une application → copie le token OAuth "App ID (Client ID)"{'
+'}
+            4. Dans les parametres de l app, active "eBay Browse API"{'
+'}
+            5. Colle ton token ci-dessous
+          </div>
           <div style={{display:'flex',gap:8}}>
-            <input id="pc-key-inp" placeholder="Coller la cle ici..." style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:7,padding:'7px 10px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:11,outline:'none'}}/>
-            <button onClick={function(){var i=document.getElementById('pc-key-inp');if(i&&i.value.trim()){setPCKey(i.value.trim());setShowKeyInput(false);lookup();}}} style={{background:'#a855f7',borderRadius:7,padding:'7px 10px',color:'#fff',fontFamily:'Outfit',fontWeight:700,fontSize:11}}>OK</button>
+            <input
+              value={keyDraft}
+              onChange={function(e){ setKeyDraft(e.target.value); }}
+              onKeyDown={function(e){ if(e.key==='Enter') saveKey(); }}
+              placeholder="Coller le Client ID eBay..."
+              style={{flex:1,background:'#0a0a0f',border:'1px solid '+border,borderRadius:8,padding:'9px 12px',color:'#eeeef5',fontFamily:'"JetBrains Mono",monospace',fontSize:11,outline:'none'}}
+            />
+            <button onClick={saveKey}
+              style={{background:purple,borderRadius:8,padding:'9px 14px',color:'#fff',fontFamily:'Outfit',fontWeight:700,fontSize:12}}>
+              OK
+            </button>
+          </div>
+          <button onClick={function(){ setShowKey(false); }}
+            style={{marginTop:8,fontFamily:'Outfit',fontSize:11,color:'#6b7280',textDecoration:'underline'}}>
+            Annuler
+          </button>
+        </div>
+      )}
+
+      {done && result && (
+        <div style={{background:bg,border:'1px solid '+border,borderRadius:10,padding:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+            <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:12,color:purple,letterSpacing:.5}}>
+              PRIX EBAY ({result.count} annonces)
+            </div>
+            <button onClick={function(){ setDone(false); setResult(null); }}
+              style={{fontFamily:'Outfit',fontSize:11,color:'#6b7280',textDecoration:'underline'}}>
+              Actualiser
+            </button>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
+            {[{l:'MIN',v:result.min},{l:'MOY',v:result.avg},{l:'MAX',v:result.max}].map(function(item){
+              return (
+                <div key={item.l} style={{background:'rgba(0,0,0,.3)',borderRadius:8,padding:'8px',textAlign:'center'}}>
+                  <div style={{fontFamily:'Outfit',fontSize:9,color:'#6b7280',marginBottom:3,letterSpacing:.5}}>{item.l}</div>
+                  <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:purple}}>{item.v}</div>
+                  <div style={{fontFamily:'Outfit',fontSize:9,color:'#6b7280'}}>EUR</div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {result.items.map(function(item, i){
+              return (
+                <a key={i} href={item.url} target="_blank" rel="noopener noreferrer"
+                  style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',background:'rgba(0,0,0,.2)',borderRadius:7,textDecoration:'none'}}>
+                  <span style={{fontFamily:'Outfit',fontSize:11,color:'#b0b0c8',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:8}}>{item.title}</span>
+                  <span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:12,fontWeight:600,color:purple,flexShrink:0}}>{item.price} EUR</span>
+                </a>
+              );
+            })}
+          </div>
+          <div style={{fontFamily:'Outfit',fontSize:10,color:'#6b7280',marginTop:8}}>
+            Source: eBay.com Browse API — annonces actives
           </div>
         </div>
       )}
-      {checked && price && (
-        <div style={{background:'rgba(168,85,247,.08)',border:'1px solid rgba(168,85,247,.3)',borderRadius:10,padding:12}}>
-          <div style={{fontFamily:'Outfit',fontSize:11,color:'#a855f7',fontWeight:600,marginBottom:8}}>Prix marche estime</div>
-          <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
-            {price.loose && <div style={{flex:1,minWidth:80}}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:2}}>LOOSE</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:'#a855f7'}}>{price.loose} EUR</div></div>}
-            {price.cib   && <div style={{flex:1,minWidth:80}}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:2}}>COMPLET</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:'#a855f7'}}>{price.cib} EUR</div></div>}
-          </div>
-          <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginTop:6}}>Source: PriceCharting - {price.name}</div>
+
+      {done && !result && (
+        <div style={{fontFamily:'Outfit',fontSize:12,color:'#6b7280',textAlign:'center',padding:'10px',background:bg,border:'1px solid '+border,borderRadius:10}}>
+          Aucune annonce trouvee — essayez le titre en anglais
         </div>
-      )}
-      {checked && !price && (
-        <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,textAlign:'center',padding:'8px 0'}}>Aucun prix trouve sur PriceCharting</div>
       )}
     </div>
   );
 }
-
-
-// ── Market Price Widget (PriceCharting) ────────────────────────────
 // ── Title Autocomplete ─────────────────────────────────────────────
 function TitleInput({value, onChange, onSelect}) {
   var [suggestions, setSuggestions] = useState([]);
