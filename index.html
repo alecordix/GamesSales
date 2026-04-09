@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0a0a0f">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GameTrack">
+  <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22GameTrack%22%2C%22short_name%22%3A%22GameTrack%22%2C%22description%22%3A%22Suivi%20revente%20jeux%20vid%C3%A9o%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230a0a0f%22%2C%22theme_color%22%3A%22%230a0a0f%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%3D%2527http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%2527%2520viewBox%3D%2527-2%2520-2%252028%252028%2527%253E%253Crect%2520width%3D%252724%2527%2520height%3D%252724%2527%2520rx%3D%25274%2527%2520fill%3D%2527%25230a0a0f%2527%2F%253E%253Ctext%2520y%3D%252720%2527%2520font-size%3D%252722%2527%253E%25F0%259F%258E%25AE%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
   <title>GameTrack</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -827,10 +830,120 @@ function Scanner({onDetect, onClose}) {
   );
 }
 
+
+// ── Notifications Stock Ancien (Sprint 3) ──────────────────────────
+function useStockNotifications(data) {
+  useEffect(function() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'denied') return;
+
+    var games = data.games || [];
+    var lots  = data.lots  || [];
+    var now   = Date.now();
+    var DAYS  = 30; // seuil : 30 jours en stock
+    var MS    = DAYS * 24 * 60 * 60 * 1000;
+
+    // Jeux individuels en stock depuis trop longtemps
+    var old = games.filter(function(g) {
+      return !g.lotId
+        && g.status === 'En stock'
+        && g.createdAt
+        && (now - g.createdAt) > MS;
+    });
+
+    if (old.length === 0) return;
+
+    // Demander permission si pas encore accordée
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then(function(perm) {
+        if (perm === 'granted') sendNotif(old);
+      });
+    } else if (Notification.permission === 'granted') {
+      // Ne notifier qu'une fois par session
+      var key = 'gt-notif-' + new Date().toDateString();
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      sendNotif(old);
+    }
+  }, []);
+}
+
+function sendNotif(games) {
+  var n = games.length;
+  try {
+    new Notification('GameTrack - Stock ancien', {
+      body: n + ' jeu' + (n > 1 ? 'x' : '') + ' en stock depuis plus de 30 jours. Pensez a les vendre !',
+      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="28" font-size="28">%F0%9F%8E%AE</text></svg>',
+      badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="28" font-size="28">%F0%9F%8E%AE</text></svg>',
+      tag: 'gametrack-stock',
+      renotify: false
+    });
+  } catch(e) {}
+}
+
+// ── NotifSettings: panneau dans HomeScreen ─────────────────────────
+function NotifBanner({data}) {
+  var [perm, setPerm] = useState(
+    'Notification' in window ? Notification.permission : 'unsupported'
+  );
+
+  var games = data.games || [];
+  var now   = Date.now();
+  var MS30  = 30 * 24 * 60 * 60 * 1000;
+  var oldCount = games.filter(function(g) {
+    return !g.lotId && g.status === 'En stock' && g.createdAt && (now - g.createdAt) > MS30;
+  }).length;
+
+  function requestPerm() {
+    if (!('Notification' in window)) return;
+    Notification.requestPermission().then(function(p) {
+      setPerm(p);
+      if (p === 'granted' && oldCount > 0) sendNotif(games.filter(function(g){
+        return !g.lotId && g.status === 'En stock' && g.createdAt && (now - g.createdAt) > MS30;
+      }));
+    });
+  }
+
+  if (perm === 'unsupported') return null;
+  if (perm === 'granted' && oldCount === 0) return null;
+
+  var orange = '#f97316';
+
+  if (perm === 'granted' && oldCount > 0) {
+    return (
+      <div style={{margin:'0 16px 16px',background:'rgba(249,115,22,.10)',border:'1px solid rgba(249,115,22,.35)',borderRadius:12,padding:'12px 14px',display:'flex',alignItems:'center',gap:10}}>
+        <span style={{fontSize:20}}>stock</span>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:orange}}>{oldCount} jeu{oldCount>1?'x':''} en stock depuis plus de 30 jours</div>
+          <div style={{fontFamily:'Outfit',fontSize:11,color:'#9090b0',marginTop:2}}>Pensez a les mettre en vente !</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (perm === 'default') {
+    return (
+      <div style={{margin:'0 16px 16px',background:'rgba(249,115,22,.08)',border:'1px solid rgba(249,115,22,.25)',borderRadius:12,padding:'12px 14px',display:'flex',alignItems:'center',gap:10}}>
+        <span style={{fontSize:20}}>bell</span>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:orange}}>Activer les notifications</div>
+          <div style={{fontFamily:'Outfit',fontSize:11,color:'#9090b0',marginTop:2}}>Soyez alerté quand un jeu est en stock depuis trop longtemps</div>
+        </div>
+        <button onClick={requestPerm} style={{background:orange,borderRadius:8,padding:'7px 12px',color:'#fff',fontFamily:'Outfit',fontWeight:700,fontSize:12,flexShrink:0}}>
+          Activer
+        </button>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 // ── Home ───────────────────────────────────────────────────────────
 function HomeScreen({data, navigate}) {
   var games = data.games || [];
   var lots = data.lots || [];
+  useStockNotifications(data);
   var soldLots = lots.filter(function(l){ return l.status === 'Vendu'; });
   var soldLotIds = new Set(soldLots.map(function(l){ return l.id; }));
   var resvLotIds = new Set(lots.filter(function(l){ return l.status === 'Reserve'; }).map(function(l){ return l.id; }));
@@ -884,6 +997,7 @@ function HomeScreen({data, navigate}) {
         </div>
       </div>
 
+      <NotifBanner data={data}/>
       <div style={{padding:'0 16px'}}>
         <div style={{fontFamily:'Syne,sans-serif',fontSize:17,fontWeight:700,color:C.text,marginBottom:12}}>Recemment ajoutes</div>
         {recent.length === 0
@@ -1749,5 +1863,63 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
 </script>
+
+<script>
+// ── Service Worker (PWA offline) ───────────────────────────────────
+(function() {
+  if (!('serviceWorker' in navigator)) return;
+
+  var CACHE = 'gametrack-v1';
+  var ASSETS = [
+    './',
+    'https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@500;600&family=Outfit:wght@400;500;600;700&display=swap',
+    'https://unpkg.com/react@18/umd/react.production.min.js',
+    'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+    'https://unpkg.com/@babel/standalone/babel.min.js',
+    'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
+    'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
+  ];
+
+  var swCode = [
+    "var CACHE='" + CACHE + "';",
+    "var ASSETS=" + JSON.stringify(ASSETS) + ";",
+    "self.addEventListener('install',function(e){",
+    "  e.waitUntil(caches.open(CACHE).then(function(c){",
+    "    return Promise.allSettled(ASSETS.map(function(u){return c.add(u).catch(function(){});}));",
+    "  }).then(function(){return self.skipWaiting();}));",
+    "});",
+    "self.addEventListener('activate',function(e){",
+    "  e.waitUntil(caches.keys().then(function(keys){",
+    "    return Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));",
+    "  }).then(function(){return self.clients.claim();}));",
+    "});",
+    "self.addEventListener('fetch',function(e){",
+    "  if(e.request.method!=='GET')return;",
+    "  e.respondWith(caches.match(e.request).then(function(cached){",
+    "    if(cached)return cached;",
+    "    return fetch(e.request).then(function(r){",
+    "      if(r&&r.status===200&&r.type!=='opaque'){",
+    "        var cl=r.clone();",
+    "        caches.open(CACHE).then(function(c){c.put(e.request,cl);});",
+    "      }",
+    "      return r;",
+    "    }).catch(function(){return cached||new Response('Offline',{status:503});});",
+    "  }));",
+    "});"
+  ].join('\n');
+
+  var blob = new Blob([swCode], {type: 'application/javascript'});
+  var swUrl = URL.createObjectURL(blob);
+
+  navigator.serviceWorker.register(swUrl, {scope: './'})
+    .then(function(reg) {
+      console.log('[GameTrack] SW registered, scope:', reg.scope);
+    })
+    .catch(function(err) {
+      console.warn('[GameTrack] SW registration failed:', err);
+    });
+})();
+</script>
+
 </body>
 </html>
