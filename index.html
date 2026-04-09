@@ -33,58 +33,63 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect,useRef,useCallback} = React;
+const {useState, useEffect, useRef, useCallback} = React;
 
-/* ─── Icons (real SVG elements, no dangerouslySetInnerHTML) ─── */
-const SvgWrap = ({size=18,style,children}) => (
-  React.createElement('svg',{width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round",style},children)
-);
-const IconPlus  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('line',{x1:"12",y1:"5",x2:"12",y2:"19"}),React.createElement('line',{x1:"5",y1:"12",x2:"19",y2:"12"}));
-const IconSearch= ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('circle',{cx:"11",cy:"11",r:"8"}),React.createElement('line',{x1:"21",y1:"21",x2:"16.65",y2:"16.65"}));
-const IconLeft  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('line',{x1:"19",y1:"12",x2:"5",y2:"12"}),React.createElement('polyline',{points:"12 19 5 12 12 5"}));
-const IconLoad  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('line',{x1:"12",y1:"2",x2:"12",y2:"6"}),React.createElement('line',{x1:"12",y1:"18",x2:"12",y2:"22"}),React.createElement('line',{x1:"4.93",y1:"4.93",x2:"7.76",y2:"7.76"}),React.createElement('line',{x1:"16.24",y1:"16.24",x2:"19.07",y2:"19.07"}),React.createElement('line',{x1:"2",y1:"12",x2:"6",y2:"12"}),React.createElement('line',{x1:"18",y1:"12",x2:"22",y2:"12"}),React.createElement('line',{x1:"4.93",y1:"19.07",x2:"7.76",y2:"16.24"}),React.createElement('line',{x1:"16.24",y1:"7.76",x2:"19.07",y2:"4.93"}));
-const IconTrash = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('polyline',{points:"3 6 5 6 21 6"}),React.createElement('path',{d:"M19 6l-1 14H6L5 6"}),React.createElement('path',{d:"M10 11v6"}),React.createElement('path',{d:"M14 11v6"}),React.createElement('path',{d:"M9 6V4h6v2"}));
-const IconDL    = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('path',{d:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"}),React.createElement('polyline',{points:"7 10 12 15 17 10"}),React.createElement('line',{x1:"12",y1:"15",x2:"12",y2:"3"}));
-const IconCam   = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('path',{d:"M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"}),React.createElement('circle',{cx:"12",cy:"13",r:"4"}));
-const IconX     = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('line',{x1:"18",y1:"6",x2:"6",y2:"18"}),React.createElement('line',{x1:"6",y1:"6",x2:"18",y2:"18"}));
-const IconChk   = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('polyline',{points:"20 6 9 17 4 12"}));
-const IconHome  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('path',{d:"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"}),React.createElement('polyline',{points:"9 22 9 12 15 12 15 22"}));
-const IconList  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('line',{x1:"8",y1:"6",x2:"21",y2:"6"}),React.createElement('line',{x1:"8",y1:"12",x2:"21",y2:"12"}),React.createElement('line',{x1:"8",y1:"18",x2:"21",y2:"18"}),React.createElement('line',{x1:"3",y1:"6",x2:"3.01",y2:"6"}),React.createElement('line',{x1:"3",y1:"12",x2:"3.01",y2:"12"}),React.createElement('line',{x1:"3",y1:"18",x2:"3.01",y2:"18"}));
-const IconLayers= ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('polygon',{points:"12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"}),React.createElement('line',{x1:"12",y1:"22",x2:"12",y2:"15.5"}),React.createElement('polyline',{points:"22 8.5 12 15.5 2 8.5"}));
-const IconEdit  = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('path',{d:"M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"}),React.createElement('path',{d:"M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"}));
-const IconTrend = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('polyline',{points:"22 7 13.5 15.5 8.5 10.5 2 17"}),React.createElement('polyline',{points:"16 7 22 7 22 13"}));
-const IconUPlus = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('path',{d:"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"}),React.createElement('circle',{cx:"12",cy:"7",r:"4"}),React.createElement('line',{x1:"19",y1:"8",x2:"19",y2:"14"}),React.createElement('line',{x1:"22",y1:"11",x2:"16",y2:"11"}));
-const IconMinus = ({size,style}) => React.createElement(SvgWrap,{size,style},React.createElement('circle',{cx:"12",cy:"12",r:"10"}),React.createElement('line',{x1:"8",y1:"12",x2:"16",y2:"12"}));
+// ── Icons ──────────────────────────────────────────────────────────
+function SvgIcon({size, style, children}) {
+  size = size || 18;
+  return React.createElement('svg', {
+    width: size, height: size, viewBox: '0 0 24 24',
+    fill: 'none', stroke: 'currentColor', strokeWidth: '2',
+    strokeLinecap: 'round', strokeLinejoin: 'round', style: style
+  }, children);
+}
+function IPlus({size,style})    { return React.createElement(SvgIcon,{size,style},React.createElement('line',{x1:'12',y1:'5',x2:'12',y2:'19'}),React.createElement('line',{x1:'5',y1:'12',x2:'19',y2:'12'})); }
+function ISearch({size,style})  { return React.createElement(SvgIcon,{size,style},React.createElement('circle',{cx:'11',cy:'11',r:'8'}),React.createElement('line',{x1:'21',y1:'21',x2:'16.65',y2:'16.65'})); }
+function ILeft({size,style})    { return React.createElement(SvgIcon,{size,style},React.createElement('line',{x1:'19',y1:'12',x2:'5',y2:'12'}),React.createElement('polyline',{points:'12 19 5 12 12 5'})); }
+function ILoader({size,style})  { return React.createElement(SvgIcon,{size,style},React.createElement('line',{x1:'12',y1:'2',x2:'12',y2:'6'}),React.createElement('line',{x1:'12',y1:'18',x2:'12',y2:'22'}),React.createElement('line',{x1:'4.93',y1:'4.93',x2:'7.76',y2:'7.76'}),React.createElement('line',{x1:'16.24',y1:'16.24',x2:'19.07',y2:'19.07'}),React.createElement('line',{x1:'2',y1:'12',x2:'6',y2:'12'}),React.createElement('line',{x1:'18',y1:'12',x2:'22',y2:'12'}),React.createElement('line',{x1:'4.93',y1:'19.07',x2:'7.76',y2:'16.24'}),React.createElement('line',{x1:'16.24',y1:'7.76',x2:'19.07',y2:'4.93'})); }
+function ITrash({size,style})   { return React.createElement(SvgIcon,{size,style},React.createElement('polyline',{points:'3 6 5 6 21 6'}),React.createElement('path',{d:'M19 6l-1 14H6L5 6'}),React.createElement('path',{d:'M10 11v6'}),React.createElement('path',{d:'M14 11v6'}),React.createElement('path',{d:'M9 6V4h6v2'})); }
+function IDL({size,style})      { return React.createElement(SvgIcon,{size,style},React.createElement('path',{d:'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'}),React.createElement('polyline',{points:'7 10 12 15 17 10'}),React.createElement('line',{x1:'12',y1:'15',x2:'12',y2:'3'})); }
+function ICam({size,style})     { return React.createElement(SvgIcon,{size,style},React.createElement('path',{d:'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'}),React.createElement('circle',{cx:'12',cy:'13',r:'4'})); }
+function IX({size,style})       { return React.createElement(SvgIcon,{size,style},React.createElement('line',{x1:'18',y1:'6',x2:'6',y2:'18'}),React.createElement('line',{x1:'6',y1:'6',x2:'18',y2:'18'})); }
+function ICheck({size,style})   { return React.createElement(SvgIcon,{size,style},React.createElement('polyline',{points:'20 6 9 17 4 12'})); }
+function IHome({size,style})    { return React.createElement(SvgIcon,{size,style},React.createElement('path',{d:'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'}),React.createElement('polyline',{points:'9 22 9 12 15 12 15 22'})); }
+function IList({size,style})    { return React.createElement(SvgIcon,{size,style},React.createElement('line',{x1:'8',y1:'6',x2:'21',y2:'6'}),React.createElement('line',{x1:'8',y1:'12',x2:'21',y2:'12'}),React.createElement('line',{x1:'8',y1:'18',x2:'21',y2:'18'}),React.createElement('line',{x1:'3',y1:'6',x2:'3.01',y2:'6'}),React.createElement('line',{x1:'3',y1:'12',x2:'3.01',y2:'12'}),React.createElement('line',{x1:'3',y1:'18',x2:'3.01',y2:'18'})); }
+function ILayers({size,style})  { return React.createElement(SvgIcon,{size,style},React.createElement('polygon',{points:'12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2'}),React.createElement('line',{x1:'12',y1:'22',x2:'12',y2:'15.5'}),React.createElement('polyline',{points:'22 8.5 12 15.5 2 8.5'})); }
+function IEdit({size,style})    { return React.createElement(SvgIcon,{size,style},React.createElement('path',{d:'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'}),React.createElement('path',{d:'M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'})); }
+function ITrend({size,style})   { return React.createElement(SvgIcon,{size,style},React.createElement('polyline',{points:'22 7 13.5 15.5 8.5 10.5 2 17'}),React.createElement('polyline',{points:'16 7 22 7 22 13'})); }
+function IUserPlus({size,style}){ return React.createElement(SvgIcon,{size,style},React.createElement('path',{d:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'}),React.createElement('circle',{cx:'12',cy:'7',r:'4'}),React.createElement('line',{x1:'19',y1:'8',x2:'19',y2:'14'}),React.createElement('line',{x1:'22',y1:'11',x2:'16',y2:'11'})); }
+function IMinus({size,style})   { return React.createElement(SvgIcon,{size,style},React.createElement('circle',{cx:'12',cy:'12',r:'10'}),React.createElement('line',{x1:'8',y1:'12',x2:'16',y2:'12'})); }
 
-/* ─── Constants ─── */
-const PLATS=['PS5','PS4','PS3','PS2','Xbox Series','Xbox One','Xbox 360','Switch','Wii U','Wii','3DS','DS','GBA','PC','Autre'];
-const CONDS=['Neuf','Tres bon etat','Bon etat','Correct','Mauvais etat'];
-const STATS=['En stock','Vendu','Reserve'];
-const PLC={'PS5':'#003791','PS4':'#003791','PS3':'#003791','PS2':'#003791','Xbox Series':'#107C10','Xbox One':'#107C10','Xbox 360':'#107C10','Switch':'#E4000F','Wii U':'#009AC7','Wii':'#aaaaaa','3DS':'#CC0000','DS':'#CC0000','GBA':'#720E9E','PC':'#1B2838'};
-const C={bg:'#0a0a0f',card:'#13131a',card2:'#1c1c28',border:'#252538',acc:'#f5a623',acc2:'rgba(245,166,35,.13)',green:'#22c55e',red:'#ef4444',blue:'#3b82f6',muted:'#6b7280',text:'#eeeef5'};
+// ── Constants ──────────────────────────────────────────────────────
+var PLATS = ['PS5','PS4','PS3','PS2','Xbox Series','Xbox One','Xbox 360','Switch','Wii U','Wii','3DS','DS','GBA','PC','Autre'];
+var CONDS = ['Neuf','Tres bon etat','Bon etat','Correct','Mauvais etat'];
+var STATS = ['En stock','Vendu','Reserve'];
+var PLAT_COLORS = {'PS5':'#003791','PS4':'#003791','PS3':'#003791','PS2':'#003791','Xbox Series':'#107C10','Xbox One':'#107C10','Xbox 360':'#107C10','Switch':'#E4000F','Wii U':'#009AC7','Wii':'#aaaaaa','3DS':'#CC0000','DS':'#CC0000','GBA':'#720E9E','PC':'#1B2838'};
+var C = {bg:'#0a0a0f',card:'#13131a',card2:'#1c1c28',border:'#252538',acc:'#f5a623',acc2:'rgba(245,166,35,.13)',green:'#22c55e',red:'#ef4444',blue:'#3b82f6',muted:'#6b7280',text:'#eeeef5'};
 
-/* ─── Helpers ─── */
-const fmt = v => parseFloat(v||0).toFixed(2) + ' \u20ac';
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
-const ts  = () => Date.now();
-const gP  = g => { const s=parseFloat(g.prixVente||0),b=parseFloat(g.prixAchat||0),sh=parseFloat(g.fraisPort||0),f=s*parseFloat(g.tauxFrais||0)/100; return s-b-sh-f; };
-const lP  = l => { const s=parseFloat(l.prixVente||0),b=parseFloat(l.prixAchat||0),sh=parseFloat(l.fraisPort||0),f=s*parseFloat(l.tauxFrais||0)/100; return s-b-sh-f; };
+// ── Helpers ────────────────────────────────────────────────────────
+function fmt(v) { return parseFloat(v||0).toFixed(2) + ' \u20ac'; }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function ts() { return Date.now(); }
+function gProfit(g) { var s=parseFloat(g.prixVente||0),b=parseFloat(g.prixAchat||0),sh=parseFloat(g.fraisPort||0),f=s*parseFloat(g.tauxFrais||0)/100; return s-b-sh-f; }
+function lProfit(l) { var s=parseFloat(l.prixVente||0),b=parseFloat(l.prixAchat||0),sh=parseFloat(l.fraisPort||0),f=s*parseFloat(l.tauxFrais||0)/100; return s-b-sh-f; }
 function detectPlat(t) {
-  const l=(t||'').toLowerCase();
-  const m=[['playstation 5','PS5'],['ps5','PS5'],['playstation 4','PS4'],['ps4','PS4'],['playstation 3','PS3'],['ps3','PS3'],['playstation 2','PS2'],['ps2','PS2'],['xbox series','Xbox Series'],['xbox one','Xbox One'],['xbox 360','Xbox 360'],['nintendo switch','Switch'],['switch','Switch'],['wii u','Wii U'],['wii','Wii'],['3ds','3DS'],['game boy','GBA'],['gba','GBA'],['windows','PC'],['steam','PC']];
-  for(const [k,v] of m) if(l.includes(k)) return v;
+  var l = (t||'').toLowerCase();
+  var map = [['playstation 5','PS5'],['ps5','PS5'],['playstation 4','PS4'],['ps4','PS4'],['playstation 3','PS3'],['ps3','PS3'],['playstation 2','PS2'],['ps2','PS2'],['xbox series','Xbox Series'],['xbox one','Xbox One'],['xbox 360','Xbox 360'],['nintendo switch','Switch'],['switch','Switch'],['wii u','Wii U'],['wii','Wii'],['3ds','3DS'],['game boy','GBA'],['gba','GBA'],['windows','PC'],['steam','PC']];
+  for (var i=0; i<map.length; i++) { if (l.indexOf(map[i][0]) >= 0) return map[i][1]; }
   return '';
 }
 
-/* ─── Storage + Seed ─── */
-const SK='gametrack-v6';
-const L1='lot-ps4-11';
-const L2='lot-18-mix';
-const SEED_LOTS = [
+// ── Storage + Seed ─────────────────────────────────────────────────
+var SK = 'gametrack-v6';
+var L1 = 'lot-ps4-11';
+var L2 = 'lot-18-mix';
+var SEED_LOTS = [
   {id:L2,name:'LOT 18 JEUX PS2/PS3/Xbox 360/Wii',prixAchat:'37.29',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock',createdAt:1744250000000},
   {id:L1,name:'LOT 11 JEUX PS4',prixAchat:'',prixVente:'55',fraisPort:'',tauxFrais:'',notes:'',status:'Vendu',createdAt:1744200000000}
 ];
-const SEED_GAMES = [
+var SEED_GAMES = [
   {id:'gm01',title:'Gran Turismo Concept 2002',platform:'PS2',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000001},
   {id:'gm02',title:'Grand Theft Auto V',platform:'PS3',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000002},
   {id:'gm03',title:'Call of Duty Black Ops II',platform:'PS3',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000003},
@@ -93,7 +98,7 @@ const SEED_GAMES = [
   {id:'gm06',title:'Battlefield 3',platform:'Xbox 360',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000006},
   {id:'gm07',title:'Pro Evolution Soccer 2008',platform:'Xbox 360',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000007},
   {id:'gm08',title:'Call of Duty Ghosts',platform:'Xbox 360',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000008},
-  {id:'gm09',title:'Call of Duty Black Ops II',platform:'Xbox 360',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000009},
+  {id:'gm09',title:'Call of Duty Black Ops II Xbox',platform:'Xbox 360',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000009},
   {id:'gm10',title:'Ultimate Pro-Pinball',platform:'PS2',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000010},
   {id:'gm11',title:'Tom Clancy Ghost Recon',platform:'PS2',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000011},
   {id:'gm12',title:'Pro Evolution Soccer 3',platform:'PS2',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:L2,notes:'',image:'',createdAt:1744250000012},
@@ -113,262 +118,373 @@ const SEED_GAMES = [
   {id:'gs08',title:'Call of Duty Modern Warfare',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000008},
   {id:'gs09',title:'Uncharted 4',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000009},
   {id:'gs10',title:'Call of Duty Black Ops 3',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000010},
-  {id:'gs11',title:'Call of Duty Black Ops',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000011}
+  {id:'gs11',title:'Call of Duty Black Ops PS4',platform:'PS4',condition:'Bon etat',barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'Vendu',lotId:L1,notes:'',image:'',createdAt:1744200000011}
 ];
 
 function loadData() {
   try {
-    const raw = localStorage.getItem(SK);
-    const d = raw ? JSON.parse(raw) : {games:[],lots:[]};
-    let changed = false;
-    for (const sl of SEED_LOTS) {
-      if (!d.lots.find(l => l.id === sl.id)) {
+    var raw = localStorage.getItem(SK);
+    var d = raw ? JSON.parse(raw) : {games:[], lots:[]};
+    if (!d.games) d.games = [];
+    if (!d.lots) d.lots = [];
+    var changed = false;
+    for (var i=0; i<SEED_LOTS.length; i++) {
+      var sl = SEED_LOTS[i];
+      var found = false;
+      for (var j=0; j<d.lots.length; j++) { if (d.lots[j].id === sl.id) { found=true; break; } }
+      if (!found) {
         d.lots.unshift(sl);
-        d.games.unshift(...SEED_GAMES.filter(g => g.lotId === sl.id));
+        var sg = SEED_GAMES.filter(function(g){ return g.lotId === sl.id; });
+        for (var k=sg.length-1; k>=0; k--) d.games.unshift(sg[k]);
         changed = true;
       }
     }
     if (changed) localStorage.setItem(SK, JSON.stringify(d));
     return d;
   } catch(e) {
-    return {games:[...SEED_GAMES], lots:[...SEED_LOTS]};
+    return {games: SEED_GAMES.slice(), lots: SEED_LOTS.slice()};
   }
 }
 function saveData(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) {} }
+function getRawgKey() { return localStorage.getItem('rawg-key') || ''; }
+function setRawgKey(k) { localStorage.setItem('rawg-key', k); }
 
-/* ─── UPC Lookup ─── */
+// ── UPC Lookup ─────────────────────────────────────────────────────
 async function upcLookup(code) {
   try {
-    const r = await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc=' + code, {signal:AbortSignal.timeout(5000)});
+    var r = await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc=' + code, {signal:AbortSignal.timeout(5000)});
     if (r.ok) {
-      const d = await r.json();
+      var d = await r.json();
       if (d.items && d.items[0] && d.items[0].title) {
-        const i = d.items[0];
-        return {title:i.title, platform:detectPlat(i.title), image:(i.images&&i.images[0])||''};
+        var item = d.items[0];
+        return {title: item.title, platform: detectPlat(item.title), image: (item.images && item.images[0]) || ''};
       }
     }
   } catch(e) {}
   return null;
 }
 
-/* ─── Game Search Autocomplete (RAWG API) ─── */
-// Mapping plateformes RAWG → noms app
-const RAWG_PLAT_MAP = {
-  4:'PC', 187:'PS5', 18:'PS4', 16:'PS3', 15:'PS2', 6:'Xbox 360',
-  1:'Xbox One', 186:'Xbox Series', 7:'Switch', 8:'DS', 9:'3DS',
-  11:'Wii', 105:'Wii U', 21:'Wii', 10:'Wii'
-};
+// ── RAWG Game Search ───────────────────────────────────────────────
+var RAWG_PLAT_MAP = {4:'PC',187:'PS5',18:'PS4',16:'PS3',15:'PS2',6:'Xbox 360',1:'Xbox One',186:'Xbox Series',7:'Switch',8:'DS',9:'3DS',11:'Wii',105:'Wii U'};
 function rawgPlatform(platforms) {
-  if(!platforms||!platforms.length) return '';
-  for(const p of platforms) {
-    const mapped = RAWG_PLAT_MAP[p.platform && p.platform.id];
-    if(mapped) return mapped;
+  if (!platforms || !platforms.length) return '';
+  for (var i=0; i<platforms.length; i++) {
+    var id = platforms[i].platform && platforms[i].platform.id;
+    if (RAWG_PLAT_MAP[id]) return RAWG_PLAT_MAP[id];
   }
   return '';
 }
-
-function getRawgKey() { return localStorage.getItem('rawg-key')||''; }
-
 async function searchGames(query) {
-  if(!query || query.length < 2) return [];
-  const key = getRawgKey();
-  if(!key) return [];
+  var key = getRawgKey();
+  if (!key || !query || query.length < 2) return [];
   try {
-    const url = 'https://api.rawg.io/api/games?search=' + encodeURIComponent(query) + '&page_size=6&key=' + key;
-    const r = await fetch(url, {signal: AbortSignal.timeout(4000)});
-    if(!r.ok) return [];
-    const d = await r.json();
-    return (d.results||[]).map(g => ({
-      title: g.name,
-      platform: rawgPlatform(g.platforms),
-      image: g.background_image || '',
-      released: g.released ? g.released.slice(0,4) : ''
-    }));
+    var url = 'https://api.rawg.io/api/games?search=' + encodeURIComponent(query) + '&page_size=6&key=' + encodeURIComponent(key);
+    var r = await fetch(url, {signal: AbortSignal.timeout(5000)});
+    if (!r.ok) return [];
+    var d = await r.json();
+    return (d.results || []).map(function(g) {
+      return {title: g.name, platform: rawgPlatform(g.platforms), image: g.background_image || '', released: g.released ? g.released.slice(0,4) : ''};
+    });
   } catch(e) { return []; }
 }
 
-function GameTitleInput({value, onChange, onSelectSuggestion}) {
-  const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-  const debounceRef = useRef(null);
-  const wrapRef = useRef(null);
+// ── CSV ────────────────────────────────────────────────────────────
+function exportCSV(games, lots) {
+  var lm = {};
+  lots.forEach(function(l){ lm[l.id] = l.name; });
+  var rows = [['Titre','Plateforme','Etat','Barcode','Achat','Vente','Port','Frais%','Benefice','Statut','Lot']];
+  games.forEach(function(g) {
+    var il = !!g.lotId;
+    rows.push([g.title,g.platform,g.condition,g.barcode,il?'(lot)':g.prixAchat,il?'(lot)':g.prixVente,il?'(lot)':g.fraisPort,il?'(lot)':g.tauxFrais,il?'voir lot':gProfit(g).toFixed(2),il?'En lot':g.status,g.lotId?lm[g.lotId]:'']);
+  });
+  var csv = rows.map(function(r){ return r.map(function(v){ return '"'+String(v||'').replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
+  var url = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'}));
+  var a = document.createElement('a'); a.href=url; a.download='gametrack.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
 
-  useEffect(() => {
-    clearTimeout(debounceRef.current);
-    if(!value || value.length < 2) { setSuggestions([]); setOpen(false); return; }
-    debounceRef.current = setTimeout(async () => {
+// ── Shared UI ──────────────────────────────────────────────────────
+var IS = {width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit,sans-serif',fontSize:15};
+
+function Inp({value, onChange, placeholder, type, mono}) {
+  return (
+    <input
+      value={value}
+      onChange={function(e){ onChange(e.target.value); }}
+      placeholder={placeholder}
+      type={type || 'text'}
+      style={Object.assign({}, IS, {fontFamily: mono ? '"JetBrains Mono",monospace' : 'Outfit,sans-serif'})}
+    />
+  );
+}
+
+function Sel({value, onChange, children}) {
+  var arrowSvg = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")";
+  return (
+    <select
+      value={value}
+      onChange={function(e){ onChange(e.target.value); }}
+      style={Object.assign({}, IS, {appearance:'none', color: value ? C.text : C.muted, backgroundImage: arrowSvg, backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center'})}
+    >
+      {children}
+    </select>
+  );
+}
+
+function Lbl({t}) {
+  return <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6,letterSpacing:.5,fontWeight:500}}>{t}</div>;
+}
+
+function Gap({h}) {
+  return <div style={{height: h || 14}} />;
+}
+
+function Toast({msg, type}) {
+  if (!msg) return null;
+  var bc = type === 'ok' ? C.green : type === 'err' ? C.red : C.acc;
+  return (
+    <div className="fi" style={{position:'fixed',top:24,left:'50%',transform:'translateX(-50%)',background:C.card2,border:'1px solid '+bc+'60',borderRadius:12,padding:'10px 20px',fontFamily:'Outfit',fontSize:14,color:C.text,zIndex:999,boxShadow:'0 8px 32px rgba(0,0,0,.6)',maxWidth:'92vw',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+      {msg}
+    </div>
+  );
+}
+
+// ── Game Card ──────────────────────────────────────────────────────
+function GCard({game, lots, onClick, right}) {
+  lots = lots || [];
+  var il = !!game.lotId;
+  var lot = il ? lots.find(function(l){ return l.id === game.lotId; }) : null;
+  var p = il ? null : gProfit(game);
+  var pc = p == null ? C.muted : p > 0 ? C.green : p < 0 ? C.red : C.muted;
+  var platC = PLAT_COLORS[game.platform] || '#444';
+  var stColors = {Vendu:C.green, Reserve:C.blue, 'En stock':'#555'};
+  return (
+    <div onClick={onClick} className="gc" style={{background:C.card,border:'1px solid '+C.border,borderRadius:14,padding:'13px 14px 13px 18px',marginBottom:10,cursor:onClick?'pointer':'default',display:'flex',alignItems:'center',gap:12,position:'relative',overflow:'hidden'}}>
+      <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:platC,borderRadius:'14px 0 0 14px'}} />
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:15,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+          {game.title || <span style={{color:C.muted,fontStyle:'italic'}}>Sans titre</span>}
+        </div>
+        <div style={{display:'flex',gap:8,marginTop:4,alignItems:'center',flexWrap:'wrap'}}>
+          {game.platform && <span style={{fontSize:11,color:C.muted}}>{game.platform}</span>}
+          {game.condition && <span style={{fontSize:11,color:C.muted}}>· {game.condition}</span>}
+          {!il && game.status && <span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:(stColors[game.status]||'#555')+'20',color:stColors[game.status]||C.muted,fontWeight:500}}>{game.status}</span>}
+          {il && lot && <span style={{fontSize:11,color:C.acc}}>📦 {lot.name}</span>}
+        </div>
+      </div>
+      {right || (
+        <div style={{textAlign:'right',flexShrink:0}}>
+          {il
+            ? <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,fontStyle:'italic'}}>Prix au lot</div>
+            : <div>
+                <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:pc}}>{p >= 0 ? '+' : ''}{fmt(p)}</div>
+                <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:2}}>{fmt(game.prixAchat)} &rarr; {fmt(game.prixVente)}</div>
+              </div>
+          }
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Title Autocomplete ─────────────────────────────────────────────
+function TitleInput({value, onChange, onSelect}) {
+  var [suggestions, setSuggestions] = useState([]);
+  var [loading, setLoading] = useState(false);
+  var [open, setOpen] = useState(false);
+  var [showKeyInput, setShowKeyInput] = useState(false);
+  var [keyDraft, setKeyDraft] = useState('');
+  var debRef = useRef(null);
+  var wrapRef = useRef(null);
+
+  useEffect(function() {
+    clearTimeout(debRef.current);
+    if (!value || value.length < 2) { setSuggestions([]); setOpen(false); return; }
+    if (!getRawgKey()) { setOpen(false); return; }
+    debRef.current = setTimeout(async function() {
       setLoading(true);
-      const results = await searchGames(value);
+      var results = await searchGames(value);
       setSuggestions(results);
       setOpen(results.length > 0);
       setLoading(false);
-    }, 400);
-    return () => clearTimeout(debounceRef.current);
+    }, 450);
+    return function(){ clearTimeout(debRef.current); };
   }, [value]);
 
-  // Close on outside click
-  useEffect(() => {
-    function handler(e) { if(wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); }
+  useEffect(function() {
+    function handler(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+        setShowKeyInput(false);
+      }
+    }
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    return function(){ document.removeEventListener('mousedown', handler); };
   }, []);
 
-  function select(s) {
+  function pickSuggestion(s) {
     setOpen(false);
     setSuggestions([]);
-    onSelectSuggestion(s);
+    onSelect(s);
   }
+
+  function saveKey() {
+    if (keyDraft.trim()) {
+      setRawgKey(keyDraft.trim());
+      setKeyDraft('');
+      setShowKeyInput(false);
+    }
+  }
+
+  var hasKey = !!getRawgKey();
 
   return (
     <div ref={wrapRef} style={{position:'relative'}}>
       <div style={{position:'relative'}}>
         <input
           value={value}
-          onChange={e => { onChange(e.target.value); }}
-          onFocus={() => { if(suggestions.length>0) setOpen(true); }}
+          onChange={function(e){ onChange(e.target.value); }}
+          onFocus={function(){ if (suggestions.length > 0) setOpen(true); }}
           placeholder="Ex: The Last of Us Part II"
-          style={{...IS, paddingRight: loading ? 40 : 14}}
+          style={Object.assign({}, IS, {paddingRight: loading ? 40 : 14})}
         />
-        {loading && <div style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)'}}><IconLoad size={15} style={{color:C.muted,animation:'spin 1s linear infinite'}}/></div>}
+        {loading && (
+          <div style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)'}}>
+            <ILoader size={15} style={{color:C.muted,animation:'spin 1s linear infinite'}} />
+          </div>
+        )}
       </div>
-      {!getRawgKey() && value.length >= 2 && (
-        <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,background:C.card,border:'1px solid '+C.acc+'50',borderRadius:12,zIndex:200,padding:'12px 14px',boxShadow:'0 8px 32px rgba(0,0,0,.7)'}}>
-          <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:C.text,marginBottom:4}}>Autocompletion non configuree</div>
-          <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,lineHeight:1.6,marginBottom:8}}>
-            1. Creez un compte gratuit sur <span style={{color:C.acc}}>rawg.io/apidocs</span>{'
-'}
-            2. Copiez votre cle API{'
-'}
-            3. Collez-la ci-dessous
+
+      {/* No key configured hint */}
+      {!hasKey && !showKeyInput && value.length >= 2 && (
+        <div style={{marginTop:6,display:'flex',alignItems:'center',gap:8}}>
+          <span style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Autocompletion disponible avec une cle RAWG gratuite</span>
+          <button
+            onClick={function(){ setShowKeyInput(true); }}
+            style={{fontFamily:'Outfit',fontSize:11,color:C.acc,fontWeight:600,textDecoration:'underline'}}
+          >
+            Configurer
+          </button>
+        </div>
+      )}
+
+      {/* Key input form */}
+      {showKeyInput && (
+        <div className="fi" style={{marginTop:8,background:C.card,border:'1px solid '+C.acc+'50',borderRadius:10,padding:12}}>
+          <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:8,lineHeight:1.6}}>
+            Cle gratuite sur rawg.io/apidocs (inscription 30 sec)
           </div>
           <div style={{display:'flex',gap:8}}>
-            <input placeholder="Coller la cle RAWG ici..." onKeyDown={e=>{if(e.key==='Enter'&&e.target.value.trim()){localStorage.setItem('rawg-key',e.target.value.trim());setOpen(false);}}} style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:8,padding:'8px 10px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:12,outline:'none'}}/>
-            <button onMouseDown={e=>{e.preventDefault();const inp=e.target.previousSibling;if(inp.value.trim()){localStorage.setItem('rawg-key',inp.value.trim());setOpen(false);}}} style={{background:C.acc,borderRadius:8,padding:'8px 12px',color:'#000',fontFamily:'Outfit',fontWeight:700,fontSize:12}}>OK</button>
+            <input
+              value={keyDraft}
+              onChange={function(e){ setKeyDraft(e.target.value); }}
+              onKeyDown={function(e){ if(e.key==='Enter') saveKey(); }}
+              placeholder="Coller la cle API ici..."
+              style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:8,padding:'8px 10px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:12,outline:'none'}}
+            />
+            <button onClick={saveKey} style={{background:C.acc,borderRadius:8,padding:'8px 12px',color:'#000',fontFamily:'Outfit',fontWeight:700,fontSize:12}}>OK</button>
           </div>
         </div>
       )}
+
+      {/* Suggestions dropdown */}
       {open && suggestions.length > 0 && (
-        <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,background:C.card,border:'1px solid '+C.acc+'60',borderRadius:12,zIndex:200,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,.7)'}}>
-          {suggestions.map((s,i) => (
-            <div key={i} onMouseDown={()=>select(s)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',cursor:'pointer',borderBottom:i<suggestions.length-1?'1px solid '+C.border:'none',background:'transparent'}}
-              onMouseEnter={e=>e.currentTarget.style.background=C.card2}
-              onMouseLeave={e=>e.currentTarget.style.background='transparent'}
-            >
-              {s.image && <img src={s.image} alt="" style={{width:38,height:28,objectFit:'cover',borderRadius:5,flexShrink:0}}/>}
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.title}</div>
-                <div style={{display:'flex',gap:6,marginTop:2}}>
-                  {s.platform && <span style={{fontFamily:'Outfit',fontSize:10,color:C.acc}}>{s.platform}</span>}
-                  {s.released && <span style={{fontFamily:'Outfit',fontSize:10,color:C.muted}}>{s.released}</span>}
+        <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,background:C.card,border:'1px solid '+C.acc+'60',borderRadius:12,zIndex:200,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,.8)'}}>
+          {suggestions.map(function(s, i) {
+            return (
+              <div
+                key={i}
+                onMouseDown={function(e){ e.preventDefault(); pickSuggestion(s); }}
+                style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',cursor:'pointer',borderBottom: i < suggestions.length-1 ? '1px solid '+C.border : 'none'}}
+                onMouseEnter={function(e){ e.currentTarget.style.background = C.card2; }}
+                onMouseLeave={function(e){ e.currentTarget.style.background = 'transparent'; }}
+              >
+                {s.image && <img src={s.image} alt="" style={{width:42,height:30,objectFit:'cover',borderRadius:5,flexShrink:0}} />}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.title}</div>
+                  <div style={{display:'flex',gap:6,marginTop:2}}>
+                    {s.platform && <span style={{fontFamily:'Outfit',fontSize:10,color:C.acc}}>{s.platform}</span>}
+                    {s.released && <span style={{fontFamily:'Outfit',fontSize:10,color:C.muted}}>{s.released}</span>}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-/* ─── CSV Export ─── */
-function exportCSV(games, lots) {
-  const lm = {};
-  lots.forEach(l => { lm[l.id] = l.name; });
-  const rows = [['Titre','Plateforme','Etat','Barcode','Achat','Vente','Port','Frais%','Benefice','Statut','Lot']];
-  games.forEach(g => {
-    const il = !!g.lotId;
-    rows.push([g.title,g.platform,g.condition,g.barcode,il?'(lot)':g.prixAchat,il?'(lot)':g.prixVente,il?'(lot)':g.fraisPort,il?'(lot)':g.tauxFrais,il?'voir lot':gP(g).toFixed(2),il?'En lot':g.status,g.lotId?lm[g.lotId]:'']);
-  });
-  const csv = rows.map(r => r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')).join('\n');
-  const url = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'}));
-  const a = document.createElement('a');
-  a.href = url; a.download = 'gametrack.csv'; a.click();
-  URL.revokeObjectURL(url);
-}
+// ── Scanner ────────────────────────────────────────────────────────
+function Scanner({onDetect, onClose}) {
+  var [st, setSt] = useState('start');
+  var [manual, setManual] = useState('');
+  var scanRef = useRef(null);
+  var done = useRef(false);
 
-/* ─── Shared UI ─── */
-const IS = {width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit,sans-serif',fontSize:15};
-function Inp({value,onChange,placeholder,type,mono}) {
-  return <input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} type={type||'text'} style={{...IS,fontFamily:mono?'"JetBrains Mono",monospace':'Outfit,sans-serif'}}/>;
-}
-function Sel({value,onChange,children}) {
-  return <select value={value} onChange={e=>onChange(e.target.value)} style={{...IS,appearance:'none',color:value?C.text:C.muted,backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")",backgroundRepeat:'no-repeat',backgroundPosition:'right 12px center'}}>{children}</select>;
-}
-function Lbl({t}) { return <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6,letterSpacing:.5,fontWeight:500}}>{t}</div>; }
-function Gap({h}) { return <div style={{height:h||14}}/>; }
-function Toast({msg,type}) {
-  if (!msg) return null;
-  const bc = type==='ok' ? C.green : type==='err' ? C.red : C.acc;
-  return <div className="fi" style={{position:'fixed',top:24,left:'50%',transform:'translateX(-50%)',background:C.card2,border:'1px solid '+bc+'60',borderRadius:12,padding:'10px 20px',fontFamily:'Outfit',fontSize:14,color:C.text,zIndex:999,boxShadow:'0 8px 32px rgba(0,0,0,.6)',maxWidth:'92vw',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{msg}</div>;
-}
-
-function GCard({game,lots,onClick,right}) {
-  lots = lots || [];
-  const il = !!game.lotId;
-  const lot = il ? lots.find(l => l.id===game.lotId) : null;
-  const p = il ? null : gP(game);
-  const pc = p==null ? C.muted : p>0 ? C.green : p<0 ? C.red : C.muted;
-  const platC = PLC[game.platform] || '#444';
-  const stC = {Vendu:C.green,Reserve:C.blue,'En stock':'#555'};
-  return (
-    <div onClick={onClick} className="gc" style={{background:C.card,border:'1px solid '+C.border,borderRadius:14,padding:'13px 14px 13px 18px',marginBottom:10,cursor:onClick?'pointer':'default',display:'flex',alignItems:'center',gap:12,position:'relative',overflow:'hidden'}}>
-      <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:platC,borderRadius:'14px 0 0 14px'}}/>
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:15,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{game.title||<span style={{color:C.muted,fontStyle:'italic'}}>Sans titre</span>}</div>
-        <div style={{display:'flex',gap:8,marginTop:4,alignItems:'center',flexWrap:'wrap'}}>
-          {game.platform && <span style={{fontSize:11,color:C.muted}}>{game.platform}</span>}
-          {game.condition && <span style={{fontSize:11,color:C.muted}}>· {game.condition}</span>}
-          {!il && game.status && <span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:(stC[game.status]||'#555')+'20',color:stC[game.status]||C.muted,fontWeight:500}}>{game.status}</span>}
-          {il && lot && <span style={{fontSize:11,color:C.acc}}>lot: {lot.name}</span>}
-        </div>
-      </div>
-      {right || <div style={{textAlign:'right',flexShrink:0}}>
-        {il ? <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,fontStyle:'italic'}}>Prix au lot</div>
-          : <><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:2}}>{fmt(game.prixAchat)}&rarr;{fmt(game.prixVente)}</div></>}
-      </div>}
-    </div>
-  );
-}
-
-/* ─── Scanner ─── */
-function Scanner({onDetect,onClose}) {
-  const [st,setSt] = useState('start');
-  const [manual,setManual] = useState('');
-  const scanRef = useRef(null);
-  const done = useRef(false);
-  useEffect(() => {
-    const t = setTimeout(async () => {
+  useEffect(function() {
+    var timer = setTimeout(async function() {
       try {
-        const sc = new Html5Qrcode('gt-scanner', {verbose:false});
+        var sc = new Html5Qrcode('gt-scanner', {verbose:false});
         scanRef.current = sc;
-        await sc.start({facingMode:'environment'}, {fps:10, qrbox:{width:Math.min(window.innerWidth-60,280),height:110}},
-          text => { if(done.current) return; done.current=true; sc.stop().catch(()=>{}).finally(()=>onDetect(text)); },
-          ()=>{}
+        await sc.start(
+          {facingMode:'environment'},
+          {fps:10, qrbox:{width:Math.min(window.innerWidth-60,280), height:110}},
+          function(text) {
+            if (done.current) return;
+            done.current = true;
+            sc.stop().catch(function(){}).finally(function(){ onDetect(text); });
+          },
+          function(){}
         );
         setSt('ok');
       } catch(e) { setSt('err'); }
     }, 300);
-    return () => { clearTimeout(t); if(scanRef.current) scanRef.current.stop().catch(()=>{}); };
+    return function() {
+      clearTimeout(timer);
+      if (scanRef.current) scanRef.current.stop().catch(function(){});
+    };
   }, []);
-  const close = () => { if(scanRef.current) scanRef.current.stop().catch(()=>{}); onClose(); };
-  const go = () => { if(!manual.trim()) return; if(scanRef.current) scanRef.current.stop().catch(()=>{}); onDetect(manual.trim()); };
+
+  function close() { if (scanRef.current) scanRef.current.stop().catch(function(){}); onClose(); }
+  function go() { if (!manual.trim()) return; if (scanRef.current) scanRef.current.stop().catch(function(){}); onDetect(manual.trim()); }
+
   return (
     <div style={{position:'fixed',inset:0,background:'#000',zIndex:400,display:'flex',flexDirection:'column'}}>
       <div style={{padding:'16px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(10,10,15,.96)',borderBottom:'1px solid #1a1a2e',flexShrink:0}}>
         <div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:800,color:C.text}}>Scanner</div>
-        <button onClick={close} style={{color:C.muted,padding:6,display:'flex'}}><IconX size={22}/></button>
+        <button onClick={close} style={{color:C.muted,padding:6,display:'flex'}}><IX size={22} /></button>
       </div>
       <div style={{flex:1,position:'relative',minHeight:0,background:'#111'}}>
-        <div id="gt-scanner" style={{width:'100%',height:'100%'}}/>
-        {st==='start' && <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#000',zIndex:5}}><IconLoad size={40} style={{color:C.acc,animation:'spin 1s linear infinite',marginBottom:14}}/><div style={{fontFamily:'Outfit',fontSize:14,color:C.muted}}>Demarrage camera...</div></div>}
-        {st==='err' && <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,background:'#000',zIndex:5}}><div style={{fontSize:48,marginBottom:16}}>camera</div><div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.text,textAlign:'center',marginBottom:8}}>Camera inaccessible</div><div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,textAlign:'center',lineHeight:1.7}}>Autorisez la camera dans Chrome. Utilisez la saisie manuelle.</div></div>}
-        {st==='ok' && <div style={{position:'absolute',bottom:14,left:0,right:0,textAlign:'center',zIndex:5,pointerEvents:'none'}}><div style={{display:'inline-block',background:'rgba(0,0,0,.65)',borderRadius:20,padding:'6px 16px',fontFamily:'Outfit',fontSize:13,color:'rgba(255,255,255,.9)'}}>Pointez le code-barre dans le cadre</div></div>}
+        <div id="gt-scanner" style={{width:'100%',height:'100%'}} />
+        {st === 'start' && (
+          <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#000',zIndex:5}}>
+            <ILoader size={40} style={{color:C.acc,animation:'spin 1s linear infinite',marginBottom:14}} />
+            <div style={{fontFamily:'Outfit',fontSize:14,color:C.muted}}>Demarrage camera...</div>
+          </div>
+        )}
+        {st === 'err' && (
+          <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,background:'#000',zIndex:5}}>
+            <div style={{fontSize:48,marginBottom:16}}>📷</div>
+            <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.text,textAlign:'center',marginBottom:8}}>Camera inaccessible</div>
+            <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,textAlign:'center',lineHeight:1.7}}>Autorisez la camera dans Chrome. Utilisez la saisie manuelle.</div>
+          </div>
+        )}
+        {st === 'ok' && (
+          <div style={{position:'absolute',bottom:14,left:0,right:0,textAlign:'center',zIndex:5,pointerEvents:'none'}}>
+            <div style={{display:'inline-block',background:'rgba(0,0,0,.65)',borderRadius:20,padding:'6px 16px',fontFamily:'Outfit',fontSize:13,color:'rgba(255,255,255,.9)'}}>
+              Pointez le code-barre dans le cadre
+            </div>
+          </div>
+        )}
       </div>
       <div style={{padding:'16px 20px 32px',background:'rgba(10,10,15,.98)',borderTop:'1px solid #1a1a2e',flexShrink:0}}>
-        <Lbl t="SAISIE MANUELLE"/>
+        <Lbl t="SAISIE MANUELLE" />
         <div style={{display:'flex',gap:10}}>
-          <input value={manual} onChange={e=>setManual(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()} placeholder="Ex: 3307216146735" inputMode="numeric" style={{flex:1,background:'#1a1a28',border:'1px solid '+C.border,borderRadius:10,padding:'12px 14px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:15,outline:'none'}}/>
+          <input value={manual} onChange={function(e){ setManual(e.target.value); }} onKeyDown={function(e){ if(e.key==='Enter') go(); }}
+            placeholder="Ex: 3307216146735" inputMode="numeric"
+            style={{flex:1,background:'#1a1a28',border:'1px solid '+C.border,borderRadius:10,padding:'12px 14px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:15,outline:'none'}} />
           <button onClick={go} style={{background:C.acc,borderRadius:10,padding:'12px 20px',color:'#000',fontFamily:'Outfit',fontWeight:700,fontSize:15}}>OK</button>
         </div>
       </div>
@@ -376,254 +492,352 @@ function Scanner({onDetect,onClose}) {
   );
 }
 
-/* ─── Home ─── */
-function HomeScreen({data,navigate}) {
-  const games = data.games||[], lots = data.lots||[];
-  // Statuts des lots
-  const soldLots = lots.filter(l => l.status==='Vendu');
-  const soldLotIds = new Set(soldLots.map(l => l.id));
-  const resvLots = lots.filter(l => l.status==='Reserve');
-  const resvLotIds = new Set(resvLots.map(l => l.id));
-  const stockLots = lots.filter(l => l.status==='En stock');
-  const stockLotIds = new Set(stockLots.map(l => l.id));
-  // Jeux vendus (solo + dans lot vendu)
-  const soldSolo = games.filter(g => g.status==='Vendu' && !g.lotId);
-  const soldInLots = games.filter(g => g.lotId && soldLotIds.has(g.lotId));
-  const nbVendus = soldSolo.length + soldInLots.length;
-  // En stock
-  const nbStock = games.filter(g=>!g.lotId&&g.status==='En stock').length + [...stockLotIds].reduce((s,id)=>s+games.filter(g=>g.lotId===id).length,0);
-  // Reservé
-  const nbResv = games.filter(g=>!g.lotId&&g.status==='Reserve').length + [...resvLotIds].reduce((s,id)=>s+games.filter(g=>g.lotId===id).length,0);
-  // Financier
-  const totalInvesti = games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixAchat||0),0) + lots.reduce((s,l)=>s+parseFloat(l.prixAchat||0),0);
-  const totalRevenus = soldSolo.reduce((s,g)=>s+parseFloat(g.prixVente||0),0) + soldLots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
-  const totalBenef = totalRevenus - totalInvesti;
-  // Potentiel global = tous les prix de vente renseignés (lots + jeux individuels, tous statuts)
-  const totalPotentiel = games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixVente||0),0) + lots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
-  const recent = [...games].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,5);
+// ── Home ───────────────────────────────────────────────────────────
+function HomeScreen({data, navigate}) {
+  var games = data.games || [];
+  var lots = data.lots || [];
+  var soldLots = lots.filter(function(l){ return l.status === 'Vendu'; });
+  var soldLotIds = new Set(soldLots.map(function(l){ return l.id; }));
+  var resvLotIds = new Set(lots.filter(function(l){ return l.status === 'Reserve'; }).map(function(l){ return l.id; }));
+  var stockLotIds = new Set(lots.filter(function(l){ return l.status === 'En stock'; }).map(function(l){ return l.id; }));
+  var soldSolo = games.filter(function(g){ return g.status === 'Vendu' && !g.lotId; });
+  var soldInLots = games.filter(function(g){ return g.lotId && soldLotIds.has(g.lotId); });
+  var nbVendus = soldSolo.length + soldInLots.length;
+  var nbStock = games.filter(function(g){ return !g.lotId && g.status === 'En stock'; }).length + Array.from(stockLotIds).reduce(function(s,id){ return s + games.filter(function(g){ return g.lotId === id; }).length; }, 0);
+  var nbResv = games.filter(function(g){ return !g.lotId && g.status === 'Reserve'; }).length + Array.from(resvLotIds).reduce(function(s,id){ return s + games.filter(function(g){ return g.lotId === id; }).length; }, 0);
+  var totalInvesti = games.filter(function(g){ return !g.lotId; }).reduce(function(s,g){ return s+parseFloat(g.prixAchat||0); }, 0) + lots.reduce(function(s,l){ return s+parseFloat(l.prixAchat||0); }, 0);
+  var totalRevenus = soldSolo.reduce(function(s,g){ return s+parseFloat(g.prixVente||0); }, 0) + soldLots.reduce(function(s,l){ return s+parseFloat(l.prixVente||0); }, 0);
+  var totalBenef = totalRevenus - totalInvesti;
+  var totalPotentiel = games.filter(function(g){ return !g.lotId; }).reduce(function(s,g){ return s+parseFloat(g.prixVente||0); }, 0) + lots.reduce(function(s,l){ return s+parseFloat(l.prixVente||0); }, 0);
+  var recent = games.slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); }).slice(0,5);
+
   return (
     <div style={{paddingBottom:90}} className="su">
       <div style={{padding:'36px 20px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
         <div style={{fontFamily:'Syne,sans-serif',fontSize:30,fontWeight:800,color:C.text,letterSpacing:-.5,marginBottom:2}}>GameTrack</div>
         <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginBottom:16}}>Suivi revente jeux video</div>
-        {/* Compteurs statuts */}
         <div style={{display:'flex',gap:8}}>
-          {[{l:'En stock',v:nbStock,col:C.blue},{l:'Reserve',v:nbResv,col:C.acc},{l:'Vendus',v:nbVendus,col:C.green}].map(({l,v,col})=>(
-            <div key={l} style={{flex:1,background:col+'18',border:'1px solid '+col+'40',borderRadius:12,padding:'10px 12px',textAlign:'center'}}>
-              <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:22,fontWeight:600,color:col}}>{v}</div>
-              <div style={{fontFamily:'Outfit',fontSize:10,color:col+'cc',marginTop:2,fontWeight:500}}>{l}</div>
-            </div>
-          ))}
+          {[{l:'En stock',v:nbStock,col:C.blue},{l:'Reserve',v:nbResv,col:C.acc},{l:'Vendus',v:nbVendus,col:C.green}].map(function(item){
+            return (
+              <div key={item.l} style={{flex:1,background:item.col+'18',border:'1px solid '+item.col+'40',borderRadius:12,padding:'10px 12px',textAlign:'center'}}>
+                <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:22,fontWeight:600,color:item.col}}>{item.v}</div>
+                <div style={{fontFamily:'Outfit',fontSize:10,color:item.col+'cc',marginTop:2,fontWeight:500}}>{item.l}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
-      {/* Stats financieres */}
-      <div style={{padding:'12px 16px 8px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-        {[{l:'INVESTI',v:fmt(totalInvesti)},{l:'REVENUS ENCAISSES',v:fmt(totalRevenus)},{l:'BENEFICE ACTUEL',v:fmt(totalBenef),col:totalBenef>=0?C.green:C.red}].map(({l,v,col})=>(
-          <div key={l} style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'12px 14px'}}>
-            <div style={{fontFamily:'Outfit',fontSize:9,color:C.muted,letterSpacing:.8,marginBottom:6,fontWeight:500}}>{l}</div>
-            <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:15,fontWeight:600,color:col||C.text}}>{v}</div>
-          </div>
-        ))}
+
+      <div style={{padding:'12px 16px 0',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        {[{l:'INVESTI',v:fmt(totalInvesti)},{l:'REVENUS ENCAISSES',v:fmt(totalRevenus)},{l:'BENEFICE ACTUEL',v:fmt(totalBenef),col:totalBenef>=0?C.green:C.red}].map(function(item){
+          return (
+            <div key={item.l} style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'12px 14px'}}>
+              <div style={{fontFamily:'Outfit',fontSize:9,color:C.muted,letterSpacing:.8,marginBottom:6,fontWeight:500}}>{item.l}</div>
+              <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:15,fontWeight:600,color:item.col||C.text}}>{item.v}</div>
+            </div>
+          );
+        })}
       </div>
-      {/* Potentiel global */}
-      <div style={{padding:'0 16px 20px'}}>
+
+      <div style={{padding:'10px 16px 20px'}}>
         <div style={{background:'linear-gradient(135deg,'+C.acc+'15,'+C.acc+'05)',border:'1px solid '+C.acc+'35',borderRadius:14,padding:'13px 16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
-            <div style={{fontFamily:'Outfit',fontSize:9,color:C.acc+'99',letterSpacing:.8,marginBottom:5,fontWeight:500}}>POTENTIEL GLOBAL (tous statuts)</div>
-            <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Prix de vente renseignes - lots + jeux individuels</div>
+            <div style={{fontFamily:'Outfit',fontSize:9,color:C.acc+'99',letterSpacing:.8,marginBottom:4,fontWeight:500}}>POTENTIEL GLOBAL (tous statuts)</div>
+            <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Somme prix vente lots + jeux individuels</div>
           </div>
           <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:20,fontWeight:600,color:C.acc,flexShrink:0,marginLeft:12}}>{fmt(totalPotentiel)}</div>
         </div>
       </div>
+
       <div style={{padding:'0 16px'}}>
         <div style={{fontFamily:'Syne,sans-serif',fontSize:17,fontWeight:700,color:C.text,marginBottom:12}}>Recemment ajoutes</div>
-        {recent.length===0 ? <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Aucun jeu - commencez par en ajouter un</div> : recent.map(g=><GCard key={g.id} game={g} lots={lots} onClick={()=>navigate('gd',g.id)}/>)}
+        {recent.length === 0
+          ? <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Aucun jeu - commencez par en ajouter un</div>
+          : recent.map(function(g){ return <GCard key={g.id} game={g} lots={lots} onClick={function(){ navigate('gd',g.id); }} />; })
+        }
       </div>
     </div>
   );
 }
 
-/* ─── Inventory ─── */
-function InvScreen({data,navigate}) {
-  const games = data.games||[], lots = data.lots||[];
-  const [q,setQ]=useState(''), [sf,setSf]=useState(''), [pf,setPf]=useState('');
-  const filtered = games.filter(g => {
-    if(q && !(g.title||'').toLowerCase().includes(q.toLowerCase()) && !(g.platform||'').toLowerCase().includes(q.toLowerCase())) return false;
-    if(sf==='En lot' && !g.lotId) return false;
-    if(sf && sf!=='En lot' && (g.lotId || g.status!==sf)) return false;
-    if(pf && g.platform!==pf) return false;
+// ── Inventory ──────────────────────────────────────────────────────
+function InvScreen({data, navigate}) {
+  var games = data.games || [];
+  var lots = data.lots || [];
+  var [q, setQ] = useState('');
+  var [sf, setSf] = useState('');
+  var [pf, setPf] = useState('');
+
+  var filtered = games.filter(function(g) {
+    if (q && !(g.title||'').toLowerCase().includes(q.toLowerCase()) && !(g.platform||'').toLowerCase().includes(q.toLowerCase())) return false;
+    if (sf === 'En lot' && !g.lotId) return false;
+    if (sf && sf !== 'En lot' && (g.lotId || g.status !== sf)) return false;
+    if (pf && g.platform !== pf) return false;
     return true;
-  }).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  const platforms = [...new Set(games.map(g=>g.platform).filter(Boolean))];
+  }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+
+  var platforms = Array.from(new Set(games.map(function(g){ return g.platform; }).filter(Boolean)));
+
   return (
     <div style={{paddingBottom:90}} className="su">
       <div style={{padding:'28px 16px 14px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Inventaire</div>
-          <button onClick={()=>exportCSV(games,lots)} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,border:'1px solid '+C.border,borderRadius:9,padding:'6px 12px',background:C.card2}}><IconDL size={14}/> CSV</button>
+          <button onClick={function(){ exportCSV(games,lots); }} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,border:'1px solid '+C.border,borderRadius:9,padding:'6px 12px',background:C.card2}}>
+            <IDL size={14} /> CSV
+          </button>
         </div>
         <div style={{position:'relative',marginBottom:10}}>
-          <IconSearch size={15} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:C.muted}}/>
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher..." style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'10px 14px 10px 35px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}}/>
+          <ISearch size={15} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:C.muted}} />
+          <input value={q} onChange={function(e){ setQ(e.target.value); }} placeholder="Rechercher..."
+            style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'10px 14px 10px 35px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}} />
         </div>
         <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:4}}>
-          {['','En stock','Vendu','Reserve','En lot'].map(s => <button key={s} onClick={()=>setSf(s)} style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontFamily:'Outfit',fontSize:12,fontWeight:500,background:sf===s?C.acc:C.card2,color:sf===s?'#000':C.muted,border:'1px solid '+(sf===s?C.acc:C.border)}}>{s||'Tous'}</button>)}
-          {platforms.map(p => <button key={p} onClick={()=>setPf(pf===p?'':p)} style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontFamily:'Outfit',fontSize:12,fontWeight:500,background:pf===p?C.acc:C.card2,color:pf===p?'#000':C.muted,border:'1px solid '+(pf===p?C.acc:C.border)}}>{p}</button>)}
+          {['','En stock','Vendu','Reserve','En lot'].map(function(s){
+            return <button key={s} onClick={function(){ setSf(s); }} style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontFamily:'Outfit',fontSize:12,fontWeight:500,background:sf===s?C.acc:C.card2,color:sf===s?'#000':C.muted,border:'1px solid '+(sf===s?C.acc:C.border)}}>{s||'Tous'}</button>;
+          })}
+          {platforms.map(function(p){
+            return <button key={p} onClick={function(){ setPf(pf===p?'':p); }} style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontFamily:'Outfit',fontSize:12,fontWeight:500,background:pf===p?C.acc:C.card2,color:pf===p?'#000':C.muted,border:'1px solid '+(pf===p?C.acc:C.border)}}>{p}</button>;
+          })}
         </div>
       </div>
       <div style={{padding:'10px 16px'}}>
         <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:10}}>{filtered.length} jeu{filtered.length!==1?'x':''}</div>
-        {filtered.length===0 ? <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit'}}>Aucun resultat</div> : filtered.map(g=><GCard key={g.id} game={g} lots={lots} onClick={()=>navigate('gd',g.id)}/>)}
+        {filtered.length === 0
+          ? <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit'}}>Aucun resultat</div>
+          : filtered.map(function(g){ return <GCard key={g.id} game={g} lots={lots} onClick={function(){ navigate('gd',g.id); }} />; })
+        }
       </div>
     </div>
   );
 }
 
-/* ─── Game Form ─── */
-function emptyG() { return {id:'',barcode:'',title:'',platform:'',condition:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:'',notes:'',image:'',createdAt:ts()}; }
-function GameForm({init,lots,onSave,onBack}) {
+// ── Game Form ──────────────────────────────────────────────────────
+function emptyGame() {
+  return {id:'',barcode:'',title:'',platform:'',condition:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:'',notes:'',image:'',createdAt:ts()};
+}
+
+function GameForm({init, lots, onSave, onBack}) {
   lots = lots || [];
-  const [g,setG] = useState(Object.assign(emptyG(), init||{}));
-  const [scanning,setScanning] = useState(false);
-  const [lkSt,setLkSt] = useState('idle');
-  const [toast,setToast] = useState({msg:'',type:'info'});
-  const upd = (k,v) => setG(prev => Object.assign({},prev,{[k]:v}));
-  const showT = (msg,type) => { setToast({msg,type:type||'info'}); setTimeout(()=>setToast({msg:'',type:'info'}),3500); };
-  const il = !!g.lotId;
+  var [g, setG] = useState(Object.assign(emptyGame(), init || {}));
+  var [scanning, setScanning] = useState(false);
+  var [lkSt, setLkSt] = useState('idle');
+  var [toast, setToast] = useState({msg:'',type:'info'});
+
+  function upd(k, v) { setG(function(prev){ return Object.assign({},prev,{[k]:v}); }); }
+  function showT(msg, type) { setToast({msg:msg,type:type||'info'}); setTimeout(function(){ setToast({msg:'',type:'info'}); }, 3500); }
+
+  var il = !!g.lotId;
+
   async function handleCode(code) {
-    setScanning(false); upd('barcode',code); setLkSt('loading'); showT('Recherche du jeu...');
-    const info = await upcLookup(code);
-    if(info && info.title) { setG(prev=>Object.assign({},prev,{barcode:code,title:info.title,platform:info.platform||prev.platform,image:info.image||prev.image})); setLkSt('ok'); showT('Jeu trouve !','ok'); }
-    else { setLkSt('err'); showT('Non trouve - remplissez manuellement','err'); }
+    setScanning(false);
+    upd('barcode', code);
+    setLkSt('loading');
+    showT('Recherche du jeu...');
+    var info = await upcLookup(code);
+    if (info && info.title) {
+      setG(function(prev){ return Object.assign({},prev,{barcode:code,title:info.title,platform:info.platform||prev.platform,image:info.image||prev.image}); });
+      setLkSt('ok');
+      showT('Jeu trouve !', 'ok');
+    } else {
+      setLkSt('err');
+      showT('Non trouve - remplissez manuellement', 'err');
+    }
   }
-  const profit = il ? null : gP(g);
-  const pc = profit==null ? C.muted : profit>0 ? C.green : profit<0 ? C.red : C.muted;
-  function save() { if(!g.title.trim()) { showT('Titre requis','err'); return; } onSave(Object.assign({},g,{id:g.id||uid()})); }
+
+  var profit = il ? null : gProfit(g);
+  var pc = profit == null ? C.muted : profit > 0 ? C.green : profit < 0 ? C.red : C.muted;
+
+  function save() {
+    if (!g.title.trim()) { showT('Titre requis', 'err'); return; }
+    onSave(Object.assign({}, g, {id: g.id || uid()}));
+  }
+
   return (
     <div style={{paddingBottom:40}} className="su">
-      {scanning && <Scanner onDetect={handleCode} onClose={()=>setScanning(false)}/>}
-      <Toast msg={toast.msg} type={toast.type}/>
+      {scanning && <Scanner onDetect={handleCode} onClose={function(){ setScanning(false); }} />}
+      <Toast msg={toast.msg} type={toast.type} />
       <div style={{padding:'28px 16px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
-        <button onClick={onBack} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}><IconLeft size={15}/> Retour</button>
-        <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>{g.id?'Modifier':'Ajouter un jeu'}</div>
+        <button onClick={onBack} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}>
+          <ILeft size={15} /> Retour
+        </button>
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>{g.id ? 'Modifier' : 'Ajouter un jeu'}</div>
       </div>
       <div style={{padding:'0 16px'}}>
-        <button onClick={()=>setScanning(true)} style={{width:'100%',background:lkSt==='ok'?C.green+'18':C.acc2,border:'1.5px solid '+(lkSt==='ok'?C.green:C.acc)+'50',borderRadius:14,padding:15,display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginBottom:16,fontFamily:'Outfit',fontWeight:600,fontSize:15,color:lkSt==='ok'?C.green:C.acc}}>
-          {lkSt==='loading'?<IconLoad size={18} style={{animation:'spin 1s linear infinite'}}/>:lkSt==='ok'?<IconChk size={18}/>:<IconCam size={18}/>}
-          {lkSt==='loading'?'Recherche...':lkSt==='ok'?'Trouve ! (re-scanner)':'Scanner le code-barre'}
+        <button onClick={function(){ setScanning(true); }} style={{width:'100%',background:lkSt==='ok'?C.green+'18':C.acc2,border:'1.5px solid '+(lkSt==='ok'?C.green:C.acc)+'50',borderRadius:14,padding:15,display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginBottom:16,fontFamily:'Outfit',fontWeight:600,fontSize:15,color:lkSt==='ok'?C.green:C.acc}}>
+          {lkSt === 'loading' ? <ILoader size={18} style={{animation:'spin 1s linear infinite'}} /> : lkSt === 'ok' ? <ICheck size={18} /> : <ICam size={18} />}
+          {lkSt === 'loading' ? 'Recherche...' : lkSt === 'ok' ? 'Trouve ! (re-scanner)' : 'Scanner le code-barre'}
         </button>
-        {g.barcode && <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,background:C.card2,borderRadius:10,padding:'8px 12px'}}>
-          {g.image && <img src={g.image} alt="" style={{width:44,height:44,borderRadius:6,objectFit:'contain',background:'#fff'}}/>}
-          <div><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Code scanne</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{g.barcode}</div></div>
-        </div>}
-        <Lbl t="TITRE *"/>
-        <GameTitleInput
+
+        {g.barcode && (
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,background:C.card2,borderRadius:10,padding:'8px 12px'}}>
+            {g.image && <img src={g.image} alt="" style={{width:44,height:44,borderRadius:6,objectFit:'contain',background:'#fff'}} />}
+            <div>
+              <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Code scanne</div>
+              <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{g.barcode}</div>
+            </div>
+          </div>
+        )}
+
+        <Lbl t="TITRE *" />
+        <TitleInput
           value={g.title}
-          onChange={v=>upd('title',v)}
-          onSelectSuggestion={s=>{
-            setG(prev=>Object.assign({},prev,{
-              title:s.title,
-              platform:s.platform||prev.platform,
-              image:s.image||prev.image
-            }));
-            setLkSt('idle');
-          }}
+          onChange={function(v){ upd('title',v); }}
+          onSelect={function(s){ setG(function(prev){ return Object.assign({},prev,{title:s.title,platform:s.platform||prev.platform,image:s.image||prev.image}); }); setLkSt('idle'); }}
         />
-        <Gap/>
+        <Gap />
+
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
-          <div><Lbl t="PLATEFORME"/><Sel value={g.platform} onChange={v=>upd('platform',v)}><option value="">Choisir...</option>{PLATS.map(p=><option key={p} value={p}>{p}</option>)}</Sel></div>
-          <div><Lbl t="ETAT"/><Sel value={g.condition} onChange={v=>upd('condition',v)}><option value="">Choisir...</option>{CONDS.map(c=><option key={c} value={c}>{c}</option>)}</Sel></div>
+          <div>
+            <Lbl t="PLATEFORME" />
+            <Sel value={g.platform} onChange={function(v){ upd('platform',v); }}>
+              <option value="">Choisir...</option>
+              {PLATS.map(function(p){ return <option key={p} value={p}>{p}</option>; })}
+            </Sel>
+          </div>
+          <div>
+            <Lbl t="ETAT" />
+            <Sel value={g.condition} onChange={function(v){ upd('condition',v); }}>
+              <option value="">Choisir...</option>
+              {CONDS.map(function(c){ return <option key={c} value={c}>{c}</option>; })}
+            </Sel>
+          </div>
         </div>
+
         <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16,marginBottom:14}}>
-          <Lbl t="LOT"/>
-          <Sel value={g.lotId} onChange={v=>upd('lotId',v)}><option value="">Aucun lot (prix individuels)</option>{lots.map(l=><option key={l.id} value={l.id}>Lot: {l.name}</option>)}</Sel>
+          <Lbl t="LOT" />
+          <Sel value={g.lotId} onChange={function(v){ upd('lotId',v); }}>
+            <option value="">Aucun lot (prix individuels)</option>
+            {lots.map(function(l){ return <option key={l.id} value={l.id}>Lot: {l.name}</option>; })}
+          </Sel>
           {il && <div style={{fontFamily:'Outfit',fontSize:12,color:C.acc,marginTop:8}}>Prix geres au niveau du lot</div>}
         </div>
-        {!il && <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16,marginBottom:14}}>
-          <Lbl t="PRIX ET FRAIS"/>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
-            <div><Lbl t="Achat (EUR)"/><Inp value={g.prixAchat} onChange={v=>upd('prixAchat',v)} placeholder="0.00" type="number" mono={true}/></div>
-            <div><Lbl t="Vente (EUR)"/><Inp value={g.prixVente} onChange={v=>upd('prixVente',v)} placeholder="0.00" type="number" mono={true}/></div>
-            <div><Lbl t="Port (EUR)"/><Inp value={g.fraisPort} onChange={v=>upd('fraisPort',v)} placeholder="0.00" type="number" mono={true}/></div>
-            <div><Lbl t="Frais % (eBay=13)"/><Inp value={g.tauxFrais} onChange={v=>upd('tauxFrais',v)} placeholder="0" type="number" mono={true}/></div>
+
+        {!il && (
+          <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16,marginBottom:14}}>
+            <Lbl t="PRIX ET FRAIS" />
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+              <div><Lbl t="Achat (EUR)" /><Inp value={g.prixAchat} onChange={function(v){ upd('prixAchat',v); }} placeholder="0.00" type="number" mono={true} /></div>
+              <div><Lbl t="Vente (EUR)" /><Inp value={g.prixVente} onChange={function(v){ upd('prixVente',v); }} placeholder="0.00" type="number" mono={true} /></div>
+              <div><Lbl t="Port (EUR)" /><Inp value={g.fraisPort} onChange={function(v){ upd('fraisPort',v); }} placeholder="0.00" type="number" mono={true} /></div>
+              <div><Lbl t="Frais % (eBay=13)" /><Inp value={g.tauxFrais} onChange={function(v){ upd('tauxFrais',v); }} placeholder="0" type="number" mono={true} /></div>
+            </div>
+            <div style={{background:C.bg,borderRadius:10,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice estime</span>
+              <span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:18,fontWeight:600,color:pc}}>{profit >= 0 ? '+' : ''}{fmt(profit)}</span>
+            </div>
           </div>
-          <div style={{background:C.bg,borderRadius:10,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice estime</span>
-            <span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:18,fontWeight:600,color:pc}}>{profit>=0?'+':''}{fmt(profit)}</span>
+        )}
+
+        {!il && (
+          <div style={{marginBottom:14}}>
+            <Lbl t="STATUT" />
+            <Sel value={g.status} onChange={function(v){ upd('status',v); }}>
+              {STATS.map(function(s){ return <option key={s} value={s}>{s}</option>; })}
+            </Sel>
           </div>
-        </div>}
-        {!il && <div style={{marginBottom:14}}><Lbl t="STATUT"/><Sel value={g.status} onChange={v=>upd('status',v)}>{STATS.map(s=><option key={s} value={s}>{s}</option>)}</Sel></div>}
-        <Lbl t="NOTES"/>
-        <textarea value={g.notes} onChange={e=>upd('notes',e.target.value)} placeholder="Griffures, manquants..." style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:72,outline:'none',marginBottom:20}}/>
-        <button onClick={save} style={{width:'100%',background:C.acc,borderRadius:14,padding:15,fontFamily:'Outfit',fontWeight:700,fontSize:16,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><IconChk size={18}/> {g.id?'Enregistrer':'Ajouter le jeu'}</button>
+        )}
+
+        <Lbl t="NOTES" />
+        <textarea value={g.notes} onChange={function(e){ upd('notes',e.target.value); }} placeholder="Griffures, manquants..."
+          style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:72,outline:'none',marginBottom:20}} />
+
+        <button onClick={save} style={{width:'100%',background:C.acc,borderRadius:14,padding:15,fontFamily:'Outfit',fontWeight:700,fontSize:16,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+          <ICheck size={18} /> {g.id ? 'Enregistrer' : 'Ajouter le jeu'}
+        </button>
       </div>
     </div>
   );
 }
 
-/* ─── Game Detail ─── */
-function GameDetail({data,selectedId,navigate,updateData}) {
-  const games = data.games||[], lots = data.lots||[];
-  const game = games.find(g=>g.id===selectedId);
-  const [editing,setEditing]=useState(false), [confirm,setConfirm]=useState(false);
-  if(!game) return <div style={{padding:48,textAlign:'center',color:C.muted,fontFamily:'Outfit'}}>Jeu introuvable</div>;
-  if(editing) return <GameForm init={game} lots={lots} onBack={()=>setEditing(false)} onSave={g=>{updateData(Object.assign({},data,{games:games.map(x=>x.id===g.id?g:x)}));setEditing(false);}}/>;
-  const il=!!game.lotId, lot=il?lots.find(l=>l.id===game.lotId):null;
-  const p=il?null:gP(game), pc=p==null?C.muted:p>0?C.green:p<0?C.red:C.muted;
-  const platC=PLC[game.platform]||'#444';
+// ── Game Detail ────────────────────────────────────────────────────
+function GameDetail({data, selectedId, navigate, updateData}) {
+  var games = data.games || [];
+  var lots = data.lots || [];
+  var game = games.find(function(g){ return g.id === selectedId; });
+  var [editing, setEditing] = useState(false);
+  var [confirm, setConfirm] = useState(false);
+
+  if (!game) return <div style={{padding:48,textAlign:'center',color:C.muted,fontFamily:'Outfit'}}>Jeu introuvable</div>;
+  if (editing) return <GameForm init={game} lots={lots} onBack={function(){ setEditing(false); }} onSave={function(g){ updateData(Object.assign({},data,{games:games.map(function(x){ return x.id===g.id?g:x; })})); setEditing(false); }} />;
+
+  var il = !!game.lotId;
+  var lot = il ? lots.find(function(l){ return l.id === game.lotId; }) : null;
+  var p = il ? null : gProfit(game);
+  var pc = p == null ? C.muted : p > 0 ? C.green : p < 0 ? C.red : C.muted;
+  var platC = PLAT_COLORS[game.platform] || '#444';
+
   return (
     <div style={{paddingBottom:40}} className="su">
       <div style={{padding:'28px 16px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
-        <button onClick={()=>navigate('inv')} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}><IconLeft size={15}/> Inventaire</button>
+        <button onClick={function(){ navigate('inv'); }} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}>
+          <ILeft size={15} /> Inventaire
+        </button>
         {game.platform && <div style={{display:'inline-block',padding:'3px 10px',borderRadius:20,background:platC+'25',color:platC,fontFamily:'Outfit',fontSize:12,fontWeight:600,marginBottom:8}}>{game.platform}</div>}
-        <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text,lineHeight:1.2}}>{game.title||'Sans titre'}</div>
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text,lineHeight:1.2}}>{game.title || 'Sans titre'}</div>
         {game.condition && <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:4}}>{game.condition}</div>}
       </div>
       <div style={{padding:'0 16px'}}>
-        {game.image && <div style={{textAlign:'center',marginBottom:14}}><img src={game.image} alt="" style={{maxHeight:100,maxWidth:170,borderRadius:10,objectFit:'contain',background:'#fff',padding:4}}/></div>}
+        {game.image && <div style={{textAlign:'center',marginBottom:14}}><img src={game.image} alt="" style={{maxHeight:100,maxWidth:170,borderRadius:10,objectFit:'contain',background:'#fff',padding:4}} /></div>}
         {il && lot
-          ? <div onClick={()=>navigate('ld',lot.id)} style={{background:C.acc2,border:'1px solid '+C.acc+'40',borderRadius:16,padding:'14px 16px',marginBottom:14,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:4}}>DANS LE LOT</div><div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.acc}}>Lot: {lot.name}</div><div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginTop:2}}>Prix geres au niveau du lot</div></div>
+          ? <div onClick={function(){ navigate('ld',lot.id); }} style={{background:C.acc2,border:'1px solid '+C.acc+'40',borderRadius:16,padding:'14px 16px',marginBottom:14,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:4}}>DANS LE LOT</div>
+                <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.acc}}>📦 {lot.name}</div>
+                <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginTop:2}}>Prix geres au niveau du lot</div>
+              </div>
               <div style={{color:C.acc,fontSize:22}}>&rsaquo;</div>
             </div>
-          : <div style={{background:'linear-gradient(135deg,'+pc+'18,'+pc+'06)',border:'1px solid '+pc+'35',borderRadius:16,padding:20,marginBottom:14,textAlign:'center'}}><div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6,letterSpacing:.8}}>BENEFICE NET</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:38,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div></div>}
+          : <div style={{background:'linear-gradient(135deg,'+pc+'18,'+pc+'06)',border:'1px solid '+pc+'35',borderRadius:16,padding:20,marginBottom:14,textAlign:'center'}}>
+              <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:6,letterSpacing:.8}}>BENEFICE NET</div>
+              <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:38,fontWeight:600,color:pc}}>{p >= 0 ? '+' : ''}{fmt(p)}</div>
+            </div>
+        }
         <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'4px 16px',marginBottom:14}}>
-          {!il && [["Prix achat",fmt(game.prixAchat)],["Prix vente",fmt(game.prixVente)],["Frais port",fmt(game.fraisPort)],["Frais plat.",game.tauxFrais||'0'+'%'],["Statut",game.status]].map(([k,v]) => (
-            <div key={k} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+C.border}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>{k}</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{v}</span></div>
-          ))}
+          {!il && [["Prix achat",fmt(game.prixAchat)],["Prix vente",fmt(game.prixVente)],["Frais port",fmt(game.fraisPort)],["Frais plat.",(game.tauxFrais||'0')+'%'],["Statut",game.status]].map(function(row){
+            return <div key={row[0]} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+C.border}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>{row[0]}</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{row[1]}</span></div>;
+          })}
           {game.barcode && <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0'}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Code-barre</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:12,color:C.text}}>{game.barcode}</span></div>}
         </div>
         {game.notes && <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'12px 14px',marginBottom:14}}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:5}}>NOTES</div><div style={{fontFamily:'Outfit',fontSize:14,color:C.text,lineHeight:1.55}}>{game.notes}</div></div>}
         <div style={{display:'flex',gap:10}}>
-          <button onClick={()=>setEditing(true)} style={{flex:1,background:C.acc,borderRadius:12,padding:13,fontFamily:'Outfit',fontWeight:700,fontSize:15,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><IconEdit size={16}/> Modifier</button>
-          <button onClick={()=>setConfirm(true)} style={{background:C.red+'18',border:'1px solid '+C.red+'40',borderRadius:12,padding:'13px 16px',color:C.red}}><IconTrash size={18}/></button>
+          <button onClick={function(){ setEditing(true); }} style={{flex:1,background:C.acc,borderRadius:12,padding:13,fontFamily:'Outfit',fontWeight:700,fontSize:15,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+            <IEdit size={16} /> Modifier
+          </button>
+          <button onClick={function(){ setConfirm(true); }} style={{background:C.red+'18',border:'1px solid '+C.red+'40',borderRadius:12,padding:'13px 16px',color:C.red}}>
+            <ITrash size={18} />
+          </button>
         </div>
-        {confirm && <div style={{marginTop:12,background:C.red+'13',border:'1px solid '+C.red+'40',borderRadius:12,padding:14}}>
-          <div style={{fontFamily:'Outfit',fontSize:14,color:C.text,marginBottom:12,textAlign:'center'}}>Supprimer ce jeu ?</div>
-          <div style={{display:'flex',gap:10}}>
-            <button onClick={()=>{updateData(Object.assign({},data,{games:games.filter(g=>g.id!==selectedId)}));navigate('inv');}} style={{flex:1,background:C.red,borderRadius:10,padding:10,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:'#fff'}}>Supprimer</button>
-            <button onClick={()=>setConfirm(false)} style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:10,fontFamily:'Outfit',fontSize:14,color:C.muted}}>Annuler</button>
+        {confirm && (
+          <div style={{marginTop:12,background:C.red+'13',border:'1px solid '+C.red+'40',borderRadius:12,padding:14}}>
+            <div style={{fontFamily:'Outfit',fontSize:14,color:C.text,marginBottom:12,textAlign:'center'}}>Supprimer ce jeu ?</div>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={function(){ updateData(Object.assign({},data,{games:games.filter(function(g){ return g.id!==selectedId; })})); navigate('inv'); }} style={{flex:1,background:C.red,borderRadius:10,padding:10,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:'#fff'}}>Supprimer</button>
+              <button onClick={function(){ setConfirm(false); }} style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:10,fontFamily:'Outfit',fontSize:14,color:C.muted}}>Annuler</button>
+            </div>
           </div>
-        </div>}
+        )}
       </div>
     </div>
   );
 }
 
-/* ─── Game Picker ─── */
-function GPicker({games,selected,onToggle}) {
-  if(!games||!games.length) return <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,textAlign:'center',padding:'16px 0'}}>Tous les jeux sont deja dans un lot.</div>;
+// ── Game Picker ────────────────────────────────────────────────────
+function GPicker({games, selected, onToggle}) {
+  if (!games || !games.length) return <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,textAlign:'center',padding:'16px 0'}}>Tous les jeux sont deja dans un lot.</div>;
   return (
     <div style={{maxHeight:260,overflowY:'auto',display:'flex',flexDirection:'column',gap:8}}>
-      {games.map(g => {
-        const sel = selected.includes(g.id);
-        const platC = PLC[g.platform]||'#444';
+      {games.map(function(g) {
+        var sel = selected.includes(g.id);
+        var platC = PLAT_COLORS[g.platform] || '#444';
         return (
-          <div key={g.id} onClick={()=>onToggle(g.id)} style={{background:sel?C.acc+'15':C.card,border:'1px solid '+(sel?C.acc:C.border),borderRadius:10,padding:'10px 12px',cursor:'pointer',display:'flex',alignItems:'center',gap:10}}>
-            <div style={{width:18,height:18,borderRadius:5,border:'2px solid '+(sel?C.acc:C.muted),background:sel?C.acc:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{sel&&<IconChk size={12} style={{color:'#000'}}/>}</div>
-            <div style={{width:3,height:32,background:platC,borderRadius:2,flexShrink:0}}/>
+          <div key={g.id} onClick={function(){ onToggle(g.id); }} style={{background:sel?C.acc+'15':C.card,border:'1px solid '+(sel?C.acc:C.border),borderRadius:10,padding:'10px 12px',cursor:'pointer',display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:18,height:18,borderRadius:5,border:'2px solid '+(sel?C.acc:C.muted),background:sel?C.acc:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              {sel && <ICheck size={12} style={{color:'#000'}} />}
+            </div>
+            <div style={{width:3,height:32,background:platC,borderRadius:2,flexShrink:0}} />
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{g.title||'Sans titre'}</div>
+              <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:13,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{g.title || 'Sans titre'}</div>
               <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>{g.platform}{g.condition?' - '+g.condition:''}</div>
             </div>
           </div>
@@ -633,66 +847,138 @@ function GPicker({games,selected,onToggle}) {
   );
 }
 
-/* ─── Lots List ─── */
-function LotsScreen({data,navigate,updateData}) {
-  const games=data.games||[], lots=data.lots||[];
-  const [showF,setShowF]=useState(false);
-  const [form,setForm]=useState({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock'});
-  const upF=(k,v)=>setForm(prev=>Object.assign({},prev,{[k]:v}));
-  const free=games.filter(g=>!g.lotId);
-  const [sel,setSel]=useState([]);
-  const togSel=id=>setSel(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
-  const lp=lP(form), lpc=lp>0?C.green:lp<0?C.red:C.muted;
-  function saveLot() {
-    if(!form.name.trim()) return;
-    const nl=Object.assign({id:uid(),createdAt:ts()},form);
-    updateData(Object.assign({},data,{lots:[...lots,nl],games:games.map(g=>sel.includes(g.id)?Object.assign({},g,{lotId:nl.id}):g)}));
-    setShowF(false); setForm({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock'}); setSel([]);
+// ── Mini Game Form (inline in lot) ────────────────────────────────
+function MiniGameForm({onClose, onSave}) {
+  var [g, setG] = useState({title:'',platform:'',condition:'',notes:'',barcode:'',image:''});
+  var [scanning, setScanning] = useState(false);
+  var [lkSt, setLkSt] = useState('idle');
+  var [toast, setToast] = useState({msg:'',type:'info'});
+  function upd(k,v){ setG(function(p){ return Object.assign({},p,{[k]:v}); }); }
+  function showT(msg,type){ setToast({msg:msg,type:type||'info'}); setTimeout(function(){ setToast({msg:'',type:'info'}); },3500); }
+  async function handleCode(code) {
+    setScanning(false); upd('barcode',code); setLkSt('loading'); showT('Recherche...');
+    var info = await upcLookup(code);
+    if (info && info.title) { setG(function(p){ return Object.assign({},p,{barcode:code,title:info.title,platform:info.platform||p.platform,image:info.image||p.image}); }); setLkSt('ok'); showT('Trouve !','ok'); }
+    else { setLkSt('err'); showT('Non trouve','err'); }
   }
-  const stC={Vendu:C.green,Reserve:C.blue,'En stock':'#555'};
+  function save() {
+    if (!g.title.trim()) { showT('Titre requis','err'); return; }
+    onSave(Object.assign({prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:''},g));
+  }
+  return (
+    <div className="fi" style={{background:C.card2,border:'1px solid '+C.acc+'40',borderRadius:14,padding:16,marginBottom:14}}>
+      {scanning && <Scanner onDetect={handleCode} onClose={function(){ setScanning(false); }} />}
+      <Toast msg={toast.msg} type={toast.type} />
+      <div style={{fontFamily:'Syne,sans-serif',fontSize:14,fontWeight:700,color:C.text,marginBottom:12}}>Nouveau jeu dans ce lot</div>
+      <button onClick={function(){ setScanning(true); }} style={{width:'100%',background:lkSt==='ok'?C.green+'18':C.acc2,border:'1px solid '+(lkSt==='ok'?C.green:C.acc)+'50',borderRadius:10,padding:11,display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:12,fontFamily:'Outfit',fontWeight:600,fontSize:13,color:lkSt==='ok'?C.green:C.acc}}>
+        {lkSt==='loading'?<ILoader size={15} style={{animation:'spin 1s linear infinite'}}/>:lkSt==='ok'?<ICheck size={15}/>:<ICam size={15}/>}
+        {lkSt==='loading'?'Recherche...':lkSt==='ok'?'Trouve ! (re-scanner)':'Scanner le code-barre'}
+      </button>
+      <Lbl t="TITRE *" />
+      <TitleInput value={g.title} onChange={function(v){ upd('title',v); }} onSelect={function(s){ setG(function(p){ return Object.assign({},p,{title:s.title,platform:s.platform||p.platform,image:s.image||p.image}); }); setLkSt('idle'); }} />
+      <Gap h={10} />
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+        <div><Lbl t="PLATEFORME" /><Sel value={g.platform||''} onChange={function(v){ upd('platform',v); }}><option value="">Choisir...</option>{PLATS.map(function(p){ return <option key={p} value={p}>{p}</option>; })}</Sel></div>
+        <div><Lbl t="ETAT" /><Sel value={g.condition||''} onChange={function(v){ upd('condition',v); }}><option value="">Choisir...</option>{CONDS.map(function(c){ return <option key={c} value={c}>{c}</option>; })}</Sel></div>
+      </div>
+      <Lbl t="NOTES" />
+      <textarea value={g.notes||''} onChange={function(e){ upd('notes',e.target.value); }} placeholder="Notes optionnelles..." style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'9px 12px',color:C.text,fontFamily:'Outfit',fontSize:13,resize:'vertical',minHeight:54,outline:'none',marginBottom:12}} />
+      <div style={{display:'flex',gap:10}}>
+        <button onClick={save} style={{flex:1,background:C.acc,borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}><ICheck size={15} /> Ajouter au lot</button>
+        <button onClick={onClose} style={{background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Annuler</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Lots List ──────────────────────────────────────────────────────
+function LotsScreen({data, navigate, updateData}) {
+  var games = data.games || [];
+  var lots = data.lots || [];
+  var [showF, setShowF] = useState(false);
+  var [form, setForm] = useState({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock'});
+  function upF(k,v){ setForm(function(p){ return Object.assign({},p,{[k]:v}); }); }
+  var free = games.filter(function(g){ return !g.lotId; });
+  var [sel, setSel] = useState([]);
+  function togSel(id){ setSel(function(p){ return p.includes(id)?p.filter(function(x){ return x!==id; }):[...p,id]; }); }
+  var lp = lProfit(form);
+  var lpc = lp > 0 ? C.green : lp < 0 ? C.red : C.muted;
+  var stColors = {Vendu:C.green,Reserve:C.blue,'En stock':'#555'};
+
+  function saveLot() {
+    if (!form.name.trim()) return;
+    var nl = Object.assign({id:uid(),createdAt:ts()}, form);
+    updateData(Object.assign({},data,{lots:[...lots,nl],games:games.map(function(g){ return sel.includes(g.id)?Object.assign({},g,{lotId:nl.id}):g; })}));
+    setShowF(false);
+    setForm({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock'});
+    setSel([]);
+  }
+
   return (
     <div style={{paddingBottom:90}} className="su">
       <div style={{padding:'28px 16px 16px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)',display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
-        <div><div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Lots</div><div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>{lots.length} lot{lots.length!==1?'s':''}</div></div>
-        <button onClick={()=>{setShowF(v=>!v);setSel([]);}} style={{background:showF?C.card2:C.acc,border:'1px solid '+(showF?C.border:C.acc),borderRadius:12,padding:'8px 14px',display:'flex',alignItems:'center',gap:8,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:showF?C.muted:'#000'}}>
-          {showF?<><IconX size={15}/> Annuler</>:<><IconPlus size={15}/> Nouveau lot</>}
+        <div>
+          <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Lots</div>
+          <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>{lots.length} lot{lots.length!==1?'s':''}</div>
+        </div>
+        <button onClick={function(){ setShowF(function(v){ return !v; }); setSel([]); }} style={{background:showF?C.card2:C.acc,border:'1px solid '+(showF?C.border:C.acc),borderRadius:12,padding:'8px 14px',display:'flex',alignItems:'center',gap:8,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:showF?C.muted:'#000'}}>
+          {showF ? <><IX size={15} /> Annuler</> : <><IPlus size={15} /> Nouveau lot</>}
         </button>
       </div>
-      {showF && <div className="fi" style={{margin:'0 16px 14px',background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16}}>
-        <div style={{fontFamily:'Syne,sans-serif',fontSize:16,fontWeight:700,color:C.text,marginBottom:16}}>Nouveau lot</div>
-        <Lbl t="NOM *"/><Inp value={form.name} onChange={v=>upF('name',v)} placeholder="Ex: Lot PS4 Juillet"/><Gap/>
-        <div style={{background:C.card,border:'1px solid '+C.border,borderRadius:12,padding:14,marginBottom:14}}>
-          <Lbl t="PRIX DU LOT"/>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
-            <div><Lbl t="Achat total"/><Inp value={form.prixAchat} onChange={v=>upF('prixAchat',v)} placeholder="0.00" type="number" mono={true}/></div>
-            <div><Lbl t="Vente totale"/><Inp value={form.prixVente} onChange={v=>upF('prixVente',v)} placeholder="0.00" type="number" mono={true}/></div>
-            <div><Lbl t="Frais port"/><Inp value={form.fraisPort} onChange={v=>upF('fraisPort',v)} placeholder="0.00" type="number" mono={true}/></div>
-            <div><Lbl t="Frais plat. %"/><Inp value={form.tauxFrais} onChange={v=>upF('tauxFrais',v)} placeholder="ex: 13" type="number" mono={true}/></div>
+
+      {showF && (
+        <div className="fi" style={{margin:'0 16px 14px',background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16}}>
+          <div style={{fontFamily:'Syne,sans-serif',fontSize:16,fontWeight:700,color:C.text,marginBottom:16}}>Nouveau lot</div>
+          <Lbl t="NOM *" /><Inp value={form.name} onChange={function(v){ upF('name',v); }} placeholder="Ex: Lot PS4 Juillet" /><Gap />
+          <div style={{background:C.card,border:'1px solid '+C.border,borderRadius:12,padding:14,marginBottom:14}}>
+            <Lbl t="PRIX DU LOT" />
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+              <div><Lbl t="Achat total" /><Inp value={form.prixAchat} onChange={function(v){ upF('prixAchat',v); }} placeholder="0.00" type="number" mono={true} /></div>
+              <div><Lbl t="Vente totale" /><Inp value={form.prixVente} onChange={function(v){ upF('prixVente',v); }} placeholder="0.00" type="number" mono={true} /></div>
+              <div><Lbl t="Frais port" /><Inp value={form.fraisPort} onChange={function(v){ upF('fraisPort',v); }} placeholder="0.00" type="number" mono={true} /></div>
+              <div><Lbl t="Frais plat. %" /><Inp value={form.tauxFrais} onChange={function(v){ upF('tauxFrais',v); }} placeholder="ex: 13" type="number" mono={true} /></div>
+            </div>
+            {(form.prixAchat || form.prixVente) && (
+              <div style={{background:C.bg,borderRadius:10,padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice estime</span>
+                <span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:lpc}}>{lp>=0?'+':''}{fmt(lp)}</span>
+              </div>
+            )}
           </div>
-          {(form.prixAchat||form.prixVente) && <div style={{background:C.bg,borderRadius:10,padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice estime</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:lpc}}>{lp>=0?'+':''}{fmt(lp)}</span></div>}
+          <div style={{marginBottom:14}}><Lbl t="STATUT" /><Sel value={form.status} onChange={function(v){ upF('status',v); }}><option value="En stock">En stock</option><option value="Vendu">Vendu</option><option value="Reserve">Reserve</option></Sel></div>
+          <Lbl t="NOTES" />
+          <textarea value={form.notes} onChange={function(e){ upF('notes',e.target.value); }} placeholder="Description..."
+            style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'10px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:54,outline:'none',marginBottom:14}} />
+          <div style={{marginBottom:14}}>
+            <Lbl t={'JEUX A AJOUTER'+(sel.length?' ('+sel.length+' sel.)':'')} />
+            <GPicker games={free} selected={sel} onToggle={togSel} />
+          </div>
+          <button onClick={saveLot} style={{width:'100%',background:C.acc,borderRadius:10,padding:12,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+            <ICheck size={16} /> Creer{sel.length?' avec '+sel.length+' jeu'+(sel.length>1?'x':''):''}
+          </button>
         </div>
-        <div style={{marginBottom:14}}><Lbl t="STATUT"/><Sel value={form.status} onChange={v=>upF('status',v)}><option value="En stock">En stock</option><option value="Vendu">Vendu</option><option value="Reserve">Reserve</option></Sel></div>
-        <Lbl t="NOTES"/><textarea value={form.notes} onChange={e=>upF('notes',e.target.value)} placeholder="Description..." style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'10px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:54,outline:'none',marginBottom:14}}/>
-        <div style={{marginBottom:14}}>
-          <Lbl t={'JEUX A AJOUTER '+(sel.length?'('+sel.length+' sel.)':'')}/>
-          <GPicker games={free} selected={sel} onToggle={togSel}/>
-        </div>
-        <button onClick={saveLot} style={{width:'100%',background:C.acc,borderRadius:10,padding:12,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
-          <IconChk size={16}/> Creer{sel.length?' avec '+sel.length+' jeu'+(sel.length>1?'x':''):''}
-        </button>
-      </div>}
+      )}
+
       <div style={{padding:'4px 16px'}}>
         {!lots.length && !showF && <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Aucun lot - creez-en un</div>}
-        {lots.map(lot => {
-          const lg=games.filter(g=>g.lotId===lot.id), p=lP(lot), pc=p>0?C.green:p<0?C.red:C.muted;
+        {lots.map(function(lot) {
+          var lg = games.filter(function(g){ return g.lotId === lot.id; });
+          var p = lProfit(lot);
+          var pc = p > 0 ? C.green : p < 0 ? C.red : C.muted;
           return (
-            <div key={lot.id} onClick={()=>navigate('ld',lot.id)} className="gc" style={{background:C.card,border:'1px solid '+C.border,borderRadius:14,padding:'15px 16px',marginBottom:10,cursor:'pointer'}}>
+            <div key={lot.id} onClick={function(){ navigate('ld',lot.id); }} className="gc" style={{background:C.card,border:'1px solid '+C.border,borderRadius:14,padding:'15px 16px',marginBottom:10,cursor:'pointer'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
                 <div>
-                  <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.text,marginBottom:3}}>{lot.name}</div>
-                  <div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontFamily:'Outfit',fontSize:12,color:C.muted}}>{lg.length} jeu{lg.length!==1?'x':''}</span>{lot.status&&<span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:(stC[lot.status]||'#555')+'20',color:stC[lot.status]||C.muted,fontWeight:500}}>{lot.status}</span>}</div>
+                  <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:16,color:C.text,marginBottom:3}}>📦 {lot.name}</div>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    <span style={{fontFamily:'Outfit',fontSize:12,color:C.muted}}>{lg.length} jeu{lg.length!==1?'x':''}</span>
+                    {lot.status && <span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:(stColors[lot.status]||'#555')+'20',color:stColors[lot.status]||C.muted,fontWeight:500}}>{lot.status}</span>}
+                  </div>
                 </div>
-                <div style={{textAlign:'right'}}><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:18,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:1}}>{fmt(lot.prixAchat)}&rarr;{fmt(lot.prixVente)}</div></div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:18,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</div>
+                  <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:1}}>{fmt(lot.prixAchat)} &rarr; {fmt(lot.prixVente)}</div>
+                </div>
               </div>
               {lot.notes && <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted}}>{lot.notes}</div>}
             </div>
@@ -703,173 +989,185 @@ function LotsScreen({data,navigate,updateData}) {
   );
 }
 
+// ── Lot Detail ─────────────────────────────────────────────────────
+function LotDetail({data, selectedId, navigate, updateData}) {
+  var games = data.games || [];
+  var lots = data.lots || [];
+  var lot = lots.find(function(l){ return l.id === selectedId; });
+  var [editing, setEditing] = useState(false);
+  var [ef, setEf] = useState(null);
+  var [confirm, setConfirm] = useState(false);
+  var [addMode, setAddMode] = useState(null); // null | 'pick' | 'create'
+  var [pickSel, setPickSel] = useState([]);
 
-/* ─── Inline mini-form to create a game directly in a lot ─── */
-function InlineLotGameForm({onClose,onSave}) {
-  const [g,setG] = useState({title:'',platform:'',condition:'',notes:''});
-  const [scanning,setScanning] = useState(false);
-  const [lkSt,setLkSt] = useState('idle');
-  const [toast,setToast] = useState({msg:'',type:'info'});
-  const upd=(k,v)=>setG(prev=>Object.assign({},prev,{[k]:v}));
-  const showT=(msg,type)=>{setToast({msg,type:type||'info'});setTimeout(()=>setToast({msg:'',type:'info'}),3500);};
-  async function handleCode(code) {
-    setScanning(false); upd('barcode',code); setLkSt('loading'); showT('Recherche...');
-    const info = await upcLookup(code);
-    if(info && info.title) { setG(prev=>Object.assign({},prev,{barcode:code,title:info.title,platform:info.platform||prev.platform,image:info.image||prev.image})); setLkSt('ok'); showT('Trouve !','ok'); }
-    else { setLkSt('err'); showT('Non trouve - remplissez manuellement','err'); }
-  }
-  function save() {
-    if(!g.title.trim()) { showT('Titre requis','err'); return; }
-    onSave(Object.assign({barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:'',image:''},g));
-  }
-  return (
-    <div className="fi" style={{background:C.card2,border:'1px solid '+C.acc+'40',borderRadius:14,padding:16,marginBottom:14}}>
-      {scanning && <Scanner onDetect={handleCode} onClose={()=>setScanning(false)}/>}
-      <Toast msg={toast.msg} type={toast.type}/>
-      <div style={{fontFamily:'Syne,sans-serif',fontSize:14,fontWeight:700,color:C.text,marginBottom:12}}>Nouveau jeu dans ce lot</div>
-      <button onClick={()=>setScanning(true)} style={{width:'100%',background:lkSt==='ok'?C.green+'18':C.acc2,border:'1px solid '+(lkSt==='ok'?C.green:C.acc)+'50',borderRadius:10,padding:11,display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:12,fontFamily:'Outfit',fontWeight:600,fontSize:13,color:lkSt==='ok'?C.green:C.acc}}>
-        {lkSt==='loading'?<IconLoad size={15} style={{animation:'spin 1s linear infinite'}}/>:lkSt==='ok'?<IconChk size={15}/>:<IconCam size={15}/>}
-        {lkSt==='loading'?'Recherche...':lkSt==='ok'?'Trouve ! (re-scanner)':'Scanner le code-barre'}
-      </button>
-      <Lbl t="TITRE *"/>
-      <GameTitleInput
-        value={g.title}
-        onChange={v=>upd('title',v)}
-        onSelectSuggestion={s=>{
-          setG(prev=>Object.assign({},prev,{
-            title:s.title,
-            platform:s.platform||prev.platform,
-            image:s.image||prev.image
-          }));
-          setLkSt('idle');
-        }}
-      />
-      <Gap h={10}/>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
-        <div><Lbl t="PLATEFORME"/><Sel value={g.platform||''} onChange={v=>upd('platform',v)}><option value="">Choisir...</option>{PLATS.map(p=><option key={p} value={p}>{p}</option>)}</Sel></div>
-        <div><Lbl t="ETAT"/><Sel value={g.condition||''} onChange={v=>upd('condition',v)}><option value="">Choisir...</option>{CONDS.map(c=><option key={c} value={c}>{c}</option>)}</Sel></div>
-      </div>
-      <Lbl t="NOTES"/><textarea value={g.notes||''} onChange={e=>upd('notes',e.target.value)} placeholder="Notes optionnelles..." style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'9px 12px',color:C.text,fontFamily:'Outfit',fontSize:13,resize:'vertical',minHeight:54,outline:'none',marginBottom:12}}/>
-      <div style={{display:'flex',gap:10}}>
-        <button onClick={save} style={{flex:1,background:C.acc,borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}><IconChk size={15}/> Ajouter au lot</button>
-        <button onClick={onClose} style={{background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Annuler</button>
-      </div>
-    </div>
-  );
-}
+  if (!lot) return <div style={{padding:48,textAlign:'center',color:C.muted,fontFamily:'Outfit'}}>Lot introuvable</div>;
 
-/* ─── Lot Detail ─── */
-function LotDetail({data,selectedId,navigate,updateData}) {
-  const games=data.games||[], lots=data.lots||[];
-  const lot=lots.find(l=>l.id===selectedId);
-  const [editing,setEditing]=useState(false), [ef,setEf]=useState(null), [confirm,setConfirm]=useState(false);
-  const [addMode,setAddMode]=useState(null), [pickSel,setPickSel]=useState([]);
-  const [creating,setCreating]=useState(false);
-  if(!lot) return <div style={{padding:48,textAlign:'center',color:C.muted,fontFamily:'Outfit'}}>Lot introuvable</div>;
-  const lotG=games.filter(g=>g.lotId===lot.id), free=games.filter(g=>!g.lotId);
-  const p=lP(lot), pc=p>0?C.green:p<0?C.red:C.muted;
-  const stC={Vendu:C.green,Reserve:C.blue,'En stock':'#555'};
-  const delLot=()=>{updateData(Object.assign({},data,{lots:lots.filter(l=>l.id!==selectedId),games:games.map(g=>g.lotId===selectedId?Object.assign({},g,{lotId:'',status:'En stock'}):g)}));navigate('lots');};
-  const remG=gid=>updateData(Object.assign({},data,{games:games.map(g=>g.id===gid?Object.assign({},g,{lotId:'',status:'En stock'}):g)}));
-  const addG=()=>{updateData(Object.assign({},data,{games:games.map(g=>pickSel.includes(g.id)?Object.assign({},g,{lotId:selectedId}):g)}));setAddMode(null);setPickSel([]);};
-  const togP=id=>setPickSel(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
-  const startEdit=()=>{setEf({name:lot.name,prixAchat:lot.prixAchat||'',prixVente:lot.prixVente||'',fraisPort:lot.fraisPort||'',tauxFrais:lot.tauxFrais||'',notes:lot.notes||'',status:lot.status||'En stock'});setEditing(true);};
-  const saveEdit=()=>{updateData(Object.assign({},data,{lots:lots.map(l=>l.id===selectedId?Object.assign({},l,ef):l)}));setEditing(false);};
-  const upE=(k,v)=>setEf(prev=>Object.assign({},prev,{[k]:v}));
+  var lotG = games.filter(function(g){ return g.lotId === lot.id; });
+  var free = games.filter(function(g){ return !g.lotId; });
+  var p = lProfit(lot);
+  var pc = p > 0 ? C.green : p < 0 ? C.red : C.muted;
+  var stColors = {Vendu:C.green,Reserve:C.blue,'En stock':'#555'};
+
+  function delLot() {
+    updateData(Object.assign({},data,{lots:lots.filter(function(l){ return l.id!==selectedId; }),games:games.map(function(g){ return g.lotId===selectedId?Object.assign({},g,{lotId:'',status:'En stock'}):g; })}));
+    navigate('lots');
+  }
+  function remG(gid) {
+    updateData(Object.assign({},data,{games:games.map(function(g){ return g.id===gid?Object.assign({},g,{lotId:'',status:'En stock'}):g; })}));
+  }
+  function addExisting() {
+    updateData(Object.assign({},data,{games:games.map(function(g){ return pickSel.includes(g.id)?Object.assign({},g,{lotId:selectedId}):g; })}));
+    setAddMode(null);
+    setPickSel([]);
+  }
+  function addNewGame(g) {
+    var ng = Object.assign({},g,{id:uid(),lotId:selectedId,createdAt:ts()});
+    updateData(Object.assign({},data,{games:[...games,ng]}));
+    setAddMode(null);
+  }
+  function togP(id){ setPickSel(function(p){ return p.includes(id)?p.filter(function(x){ return x!==id; }):[...p,id]; }); }
+  function startEdit(){ setEf({name:lot.name,prixAchat:lot.prixAchat||'',prixVente:lot.prixVente||'',fraisPort:lot.fraisPort||'',tauxFrais:lot.tauxFrais||'',notes:lot.notes||'',status:lot.status||'En stock'}); setEditing(true); }
+  function saveEdit(){ updateData(Object.assign({},data,{lots:lots.map(function(l){ return l.id===selectedId?Object.assign({},l,ef):l; })})); setEditing(false); }
+  function upE(k,v){ setEf(function(p){ return Object.assign({},p,{[k]:v}); }); }
+
   return (
     <div style={{paddingBottom:40}} className="su">
       <div style={{padding:'28px 16px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
-        <button onClick={()=>navigate('lots')} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}><IconLeft size={15}/> Lots</button>
+        <button onClick={function(){ navigate('lots'); }} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:14}}>
+          <ILeft size={15} /> Lots
+        </button>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
           <div>
             <div style={{display:'inline-block',padding:'3px 10px',borderRadius:20,background:C.acc2,color:C.acc,fontFamily:'Outfit',fontSize:12,fontWeight:600,marginBottom:8}}>Lot</div>
             <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>{lot.name}</div>
-            {lot.status && <span style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:(stC[lot.status]||'#555')+'25',color:stC[lot.status]||C.muted,fontFamily:'Outfit',fontWeight:500,marginTop:6,display:'inline-block'}}>{lot.status}</span>}
+            {lot.status && <span style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:(stColors[lot.status]||'#555')+'25',color:stColors[lot.status]||C.muted,fontFamily:'Outfit',fontWeight:500,marginTop:6,display:'inline-block'}}>{lot.status}</span>}
           </div>
-          <button onClick={startEdit} style={{background:C.card2,border:'1px solid '+C.border,borderRadius:12,padding:'8px 12px',display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13}}><IconEdit size={14}/> Modifier</button>
+          <button onClick={startEdit} style={{background:C.card2,border:'1px solid '+C.border,borderRadius:12,padding:'8px 12px',display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13}}>
+            <IEdit size={14} /> Modifier
+          </button>
         </div>
       </div>
+
       <div style={{padding:'0 16px'}}>
-        {editing && ef && <div className="fi" style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16,marginBottom:14}}>
-          <div style={{fontFamily:'Syne,sans-serif',fontSize:15,fontWeight:700,color:C.text,marginBottom:14}}>Modifier le lot</div>
-          <Lbl t="NOM"/><Inp value={ef.name} onChange={v=>upE('name',v)} placeholder="Nom du lot"/><Gap h={10}/>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
-            <div><Lbl t="Achat"/><Inp value={ef.prixAchat} onChange={v=>upE('prixAchat',v)} placeholder="0.00" type="number" mono={true}/></div>
-            <div><Lbl t="Vente"/><Inp value={ef.prixVente} onChange={v=>upE('prixVente',v)} placeholder="0.00" type="number" mono={true}/></div>
-            <div><Lbl t="Port"/><Inp value={ef.fraisPort} onChange={v=>upE('fraisPort',v)} placeholder="0.00" type="number" mono={true}/></div>
-            <div><Lbl t="Frais %"/><Inp value={ef.tauxFrais} onChange={v=>upE('tauxFrais',v)} placeholder="ex:13" type="number" mono={true}/></div>
+        {editing && ef && (
+          <div className="fi" style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:16,marginBottom:14}}>
+            <div style={{fontFamily:'Syne,sans-serif',fontSize:15,fontWeight:700,color:C.text,marginBottom:14}}>Modifier le lot</div>
+            <Lbl t="NOM" /><Inp value={ef.name} onChange={function(v){ upE('name',v); }} placeholder="Nom du lot" /><Gap h={10} />
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+              <div><Lbl t="Achat" /><Inp value={ef.prixAchat} onChange={function(v){ upE('prixAchat',v); }} placeholder="0.00" type="number" mono={true} /></div>
+              <div><Lbl t="Vente" /><Inp value={ef.prixVente} onChange={function(v){ upE('prixVente',v); }} placeholder="0.00" type="number" mono={true} /></div>
+              <div><Lbl t="Port" /><Inp value={ef.fraisPort} onChange={function(v){ upE('fraisPort',v); }} placeholder="0.00" type="number" mono={true} /></div>
+              <div><Lbl t="Frais %" /><Inp value={ef.tauxFrais} onChange={function(v){ upE('tauxFrais',v); }} placeholder="ex:13" type="number" mono={true} /></div>
+            </div>
+            {(function(){
+              var ep=lProfit(ef), epc=ep>0?C.green:ep<0?C.red:C.muted;
+              return <div style={{background:C.bg,borderRadius:10,padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:epc}}>{ep>=0?'+':''}{fmt(ep)}</span></div>;
+            })()}
+            <Lbl t="STATUT" /><Sel value={ef.status} onChange={function(v){ upE('status',v); }}><option value="En stock">En stock</option><option value="Vendu">Vendu</option><option value="Reserve">Reserve</option></Sel><Gap h={10} />
+            <Lbl t="NOTES" />
+            <textarea value={ef.notes} onChange={function(e){ upE('notes',e.target.value); }} placeholder="Notes..."
+              style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'9px 12px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:54,outline:'none',marginBottom:12}} />
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={saveEdit} style={{flex:1,background:C.acc,borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}><ICheck size={15} /> Enregistrer</button>
+              <button onClick={function(){ setEditing(false); }} style={{background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'11px 16px',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Annuler</button>
+            </div>
           </div>
-          {(()=>{const ep=lP(ef),epc=ep>0?C.green:ep<0?C.red:C.muted;return <div style={{background:C.bg,borderRadius:10,padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:epc}}>{ep>=0?'+':''}{fmt(ep)}</span></div>})()}
-          <Lbl t="STATUT"/><Sel value={ef.status} onChange={v=>upE('status',v)}><option value="En stock">En stock</option><option value="Vendu">Vendu</option><option value="Reserve">Reserve</option></Sel><Gap h={10}/>
-          <Lbl t="NOTES"/><textarea value={ef.notes} onChange={e=>upE('notes',e.target.value)} placeholder="Notes..." style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'9px 12px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:54,outline:'none',marginBottom:12}}/>
-          <div style={{display:'flex',gap:10}}>
-            <button onClick={saveEdit} style={{flex:1,background:C.acc,borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}><IconChk size={15}/> Enregistrer</button>
-            <button onClick={()=>setEditing(false)} style={{background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'11px 16px',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Annuler</button>
-          </div>
-        </div>}
+        )}
+
         <div style={{background:'linear-gradient(135deg,'+pc+'18,'+pc+'06)',border:'1px solid '+pc+'35',borderRadius:16,padding:18,marginBottom:14}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
-            {[['ACHAT LOT',fmt(lot.prixAchat)],['VENTE LOT',fmt(lot.prixVente)],['FRAIS PORT',fmt(lot.fraisPort)],['JEUX',''+lotG.length]].map(([k,v])=>(
-              <div key={k}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,letterSpacing:.5,marginBottom:4}}>{k}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:C.text}}>{v}</div></div>
-            ))}
+            {[['ACHAT LOT',fmt(lot.prixAchat)],['VENTE LOT',fmt(lot.prixVente)],['FRAIS PORT',fmt(lot.fraisPort)],['JEUX',''+lotG.length]].map(function(row){
+              return <div key={row[0]}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,letterSpacing:.5,marginBottom:4}}>{row[0]}</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:C.text}}>{row[1]}</div></div>;
+            })}
           </div>
           <div style={{borderTop:'1px solid '+pc+'30',paddingTop:14,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice net du lot</span>
             <span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:26,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</span>
           </div>
         </div>
+
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <div style={{fontFamily:'Syne,sans-serif',fontSize:16,fontWeight:700,color:C.text}}>Jeux ({lotG.length})</div>
           <div style={{display:'flex',gap:8}}>
-            <button onClick={()=>{setAddMode(addMode==='pick'?null:'pick');setPickSel([]);setCreating(false);}} style={{background:addMode==='pick'?C.card2:C.acc2,border:'1px solid '+(addMode==='pick'?C.border:C.acc)+'50',borderRadius:10,padding:'6px 10px',display:'flex',alignItems:'center',gap:5,fontFamily:'Outfit',fontWeight:600,fontSize:11,color:addMode==='pick'?C.muted:C.acc}}>
-              {addMode==='pick'?<><IconX size={12}/> Annuler</>:<><IconUPlus size={12}/> Existant</>}
+            <button onClick={function(){ setAddMode(addMode==='pick'?null:'pick'); setPickSel([]); }} style={{background:addMode==='pick'?C.card2:C.acc2,border:'1px solid '+(addMode==='pick'?C.border:C.acc)+'50',borderRadius:10,padding:'6px 10px',display:'flex',alignItems:'center',gap:5,fontFamily:'Outfit',fontWeight:600,fontSize:11,color:addMode==='pick'?C.muted:C.acc}}>
+              {addMode==='pick' ? <><IX size={12} /> Annuler</> : <><IUserPlus size={12} /> Existant</>}
             </button>
-            <button onClick={()=>{setCreating(!creating);setAddMode(null);setPickSel([]);}} style={{background:creating?C.card2:C.acc2,border:'1px solid '+(creating?C.border:C.acc)+'50',borderRadius:10,padding:'6px 10px',display:'flex',alignItems:'center',gap:5,fontFamily:'Outfit',fontWeight:600,fontSize:11,color:creating?C.muted:C.acc}}>
-              {creating?<><IconX size={12}/> Annuler</>:<><IconPlus size={12}/> Nouveau</>}
+            <button onClick={function(){ setAddMode(addMode==='create'?null:'create'); }} style={{background:addMode==='create'?C.card2:C.acc2,border:'1px solid '+(addMode==='create'?C.border:C.acc)+'50',borderRadius:10,padding:'6px 10px',display:'flex',alignItems:'center',gap:5,fontFamily:'Outfit',fontWeight:600,fontSize:11,color:addMode==='create'?C.muted:C.acc}}>
+              {addMode==='create' ? <><IX size={12} /> Annuler</> : <><IPlus size={12} /> Nouveau</>}
             </button>
           </div>
         </div>
-        {addMode==='pick' && <div className="fi" style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:14,marginBottom:14}}>
-          <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:10}}>{free.length} jeu{free.length!==1?'x':''} disponible{free.length!==1?'s':''}</div>
-          <GPicker games={free} selected={pickSel} onToggle={togP}/>
-          {free.length>0 && <button onClick={addG} disabled={!pickSel.length} style={{width:'100%',marginTop:12,background:pickSel.length?C.acc:'#2a2a3a',borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:pickSel.length?'#000':C.muted,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
-            <IconChk size={15}/> Ajouter {pickSel.length?pickSel.length+' jeu'+(pickSel.length>1?'x':''):''}
-          </button>}
-        </div>}
-        {creating && <InlineLotGameForm onClose={()=>setCreating(false)} onSave={g=>{
-          const ng=Object.assign({},g,{id:uid(),lotId:selectedId,createdAt:ts()});
-          updateData(Object.assign({},data,{games:[...games,ng]}));
-          setCreating(false);
-        }}/>}
-        {!lotG.length && !addMode && !creating && <div style={{textAlign:'center',padding:'20px 0',color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:10}}>Aucun jeu dans ce lot. Utilisez les boutons ci-dessus pour en ajouter.</div>}
-        {lotG.map(g=><GCard key={g.id} game={Object.assign({},g,{lotId:''})} lots={[]} onClick={()=>navigate('gd',g.id)} right={<button onClick={e=>{e.stopPropagation();remG(g.id);}} style={{padding:8,color:C.red+'99',flexShrink:0}}><IconMinus size={20}/></button>}/>)}
-        <Gap h={16}/>
-        <button onClick={()=>setConfirm(true)} style={{width:'100%',background:C.red+'14',border:'1px solid '+C.red+'40',borderRadius:12,padding:13,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:C.red,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><IconTrash size={16}/> Supprimer ce lot</button>
-        {confirm && <div style={{marginTop:10,background:C.red+'12',border:'1px solid '+C.red+'40',borderRadius:12,padding:14}}>
-          <div style={{fontFamily:'Outfit',fontSize:13,color:C.text,marginBottom:12,textAlign:'center'}}>Les jeux seront remis en stock.</div>
-          <div style={{display:'flex',gap:10}}>
-            <button onClick={delLot} style={{flex:1,background:C.red,borderRadius:10,padding:10,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:'#fff'}}>Confirmer</button>
-            <button onClick={()=>setConfirm(false)} style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:10,fontFamily:'Outfit',fontSize:14,color:C.muted}}>Annuler</button>
+
+        {addMode === 'pick' && (
+          <div className="fi" style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:14,marginBottom:14}}>
+            <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:10}}>{free.length} jeu{free.length!==1?'x':''} disponible{free.length!==1?'s':''}</div>
+            <GPicker games={free} selected={pickSel} onToggle={togP} />
+            {free.length > 0 && (
+              <button onClick={addExisting} disabled={!pickSel.length} style={{width:'100%',marginTop:12,background:pickSel.length?C.acc:'#2a2a3a',borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:pickSel.length?'#000':C.muted,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                <ICheck size={15} /> Ajouter {pickSel.length?pickSel.length+' jeu'+(pickSel.length>1?'x':''):''}
+              </button>
+            )}
           </div>
-        </div>}
+        )}
+
+        {addMode === 'create' && (
+          <MiniGameForm onClose={function(){ setAddMode(null); }} onSave={addNewGame} />
+        )}
+
+        {!lotG.length && !addMode && (
+          <div style={{textAlign:'center',padding:'24px 0',color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:10}}>
+            Aucun jeu dans ce lot. Utilisez les boutons ci-dessus.
+          </div>
+        )}
+
+        {lotG.map(function(g) {
+          return (
+            <GCard key={g.id} game={Object.assign({},g,{lotId:''})} lots={[]} onClick={function(){ navigate('gd',g.id); }}
+              right={
+                <button onClick={function(e){ e.stopPropagation(); remG(g.id); }} style={{padding:8,color:C.red+'99',flexShrink:0}}>
+                  <IMinus size={20} />
+                </button>
+              }
+            />
+          );
+        })}
+
+        <div style={{height:16}} />
+        <button onClick={function(){ setConfirm(true); }} style={{width:'100%',background:C.red+'14',border:'1px solid '+C.red+'40',borderRadius:12,padding:13,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:C.red,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+          <ITrash size={16} /> Supprimer ce lot
+        </button>
+        {confirm && (
+          <div style={{marginTop:10,background:C.red+'12',border:'1px solid '+C.red+'40',borderRadius:12,padding:14}}>
+            <div style={{fontFamily:'Outfit',fontSize:13,color:C.text,marginBottom:12,textAlign:'center'}}>Les jeux seront remis en stock.</div>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={delLot} style={{flex:1,background:C.red,borderRadius:10,padding:10,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:'#fff'}}>Confirmer</button>
+              <button onClick={function(){ setConfirm(false); }} style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:10,fontFamily:'Outfit',fontSize:14,color:C.muted}}>Annuler</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ─── Bottom Nav ─── */
-function Nav({screen,navigate}) {
-  const tabs=[{id:'home',label:'Accueil',Icon:IconHome},{id:'inv',label:'Inventaire',Icon:IconList},{id:'add',label:'Ajouter',Icon:IconPlus,acc:true},{id:'lots',label:'Lots',Icon:IconLayers}];
+// ── Bottom Nav ─────────────────────────────────────────────────────
+function Nav({screen, navigate}) {
+  var tabs = [
+    {id:'home', label:'Accueil', Icon:IHome},
+    {id:'inv',  label:'Inventaire', Icon:IList},
+    {id:'add',  label:'Ajouter', Icon:IPlus, acc:true},
+    {id:'lots', label:'Lots', Icon:ILayers}
+  ];
   return (
     <div style={{position:'fixed',bottom:0,left:0,right:0,background:C.card,borderTop:'1px solid '+C.border,display:'flex',padding:'10px 0 18px',zIndex:100}}>
-      {tabs.map(({id,label,Icon,acc}) => {
-        const active=screen===id;
+      {tabs.map(function(tab) {
+        var active = screen === tab.id;
         return (
-          <button key={id} onClick={()=>navigate(id)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-            <div style={{width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:13,background:acc?(active?C.acc:C.acc2):'transparent'}}>
-              <Icon size={20} style={{color:acc?C.acc:(active?C.acc:C.muted)}}/>
+          <button key={tab.id} onClick={function(){ navigate(tab.id); }} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+            <div style={{width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:13,background:tab.acc?(active?C.acc:C.acc2):'transparent'}}>
+              <tab.Icon size={20} style={{color:tab.acc?C.acc:(active?C.acc:C.muted)}} />
             </div>
-            <span style={{fontFamily:'Outfit',fontSize:10,fontWeight:500,color:active?C.acc:C.muted}}>{label}</span>
+            <span style={{fontFamily:'Outfit',fontSize:10,fontWeight:500,color:active?C.acc:C.muted}}>{tab.label}</span>
           </button>
         );
       })}
@@ -877,35 +1175,35 @@ function Nav({screen,navigate}) {
   );
 }
 
-/* ─── App ─── */
+// ── App ────────────────────────────────────────────────────────────
 function App() {
-  const [data,setData] = useState(() => loadData());
-  const [screen,setScreen] = useState('home');
-  const [selId,setSelId] = useState(null);
-  const updateData = useCallback(d => { setData(d); saveData(d); }, []);
-  const navigate = (sc,id) => { setScreen(sc); setSelId(id||null); window.scrollTo(0,0); };
+  var [data, setData] = useState(function(){ return loadData(); });
+  var [screen, setScreen] = useState('home');
+  var [selId, setSelId] = useState(null);
+  var updateData = useCallback(function(d){ setData(d); saveData(d); }, []);
+  function navigate(sc, id) { setScreen(sc); setSelId(id||null); window.scrollTo(0,0); }
   function handleAddSave(g) {
-    const games = data.games||[];
-    const exists = games.find(x=>x.id===g.id);
-    updateData(Object.assign({},data,{games:exists?games.map(x=>x.id===g.id?g:x):[...games,g]}));
+    var games = data.games || [];
+    var exists = games.find(function(x){ return x.id === g.id; });
+    updateData(Object.assign({},data,{games: exists ? games.map(function(x){ return x.id===g.id?g:x; }) : [...games,g]}));
     navigate('inv');
   }
-  const noNav = ['add','gd','ld'];
-  const p = {data,navigate,selectedId:selId,updateData};
+  var noNav = ['add','gd','ld'];
+  var props = {data:data, navigate:navigate, selectedId:selId, updateData:updateData};
   return (
     <div style={{fontFamily:'Outfit,sans-serif',background:C.bg,minHeight:'100vh',color:C.text}}>
-      {screen==='home' && <HomeScreen {...p}/>}
-      {screen==='inv'  && <InvScreen {...p}/>}
-      {screen==='add'  && <GameForm lots={data.lots||[]} onBack={()=>navigate('inv')} onSave={handleAddSave}/>}
-      {screen==='gd'   && <GameDetail {...p}/>}
-      {screen==='lots' && <LotsScreen {...p}/>}
-      {screen==='ld'   && <LotDetail {...p}/>}
-      {!noNav.includes(screen) && <Nav screen={screen} navigate={navigate}/>}
+      {screen === 'home' && <HomeScreen data={data} navigate={navigate} />}
+      {screen === 'inv'  && <InvScreen data={data} navigate={navigate} />}
+      {screen === 'add'  && <GameForm lots={data.lots||[]} onBack={function(){ navigate('inv'); }} onSave={handleAddSave} />}
+      {screen === 'gd'   && <GameDetail data={data} selectedId={selId} navigate={navigate} updateData={updateData} />}
+      {screen === 'lots' && <LotsScreen data={data} navigate={navigate} updateData={updateData} />}
+      {screen === 'ld'   && <LotDetail data={data} selectedId={selId} navigate={navigate} updateData={updateData} />}
+      {!noNav.includes(screen) && <Nav screen={screen} navigate={navigate} />}
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
 </script>
 </body>
 </html>
