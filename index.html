@@ -12,6 +12,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;background:#0a0a0f;overflow-x:hidden}
@@ -134,7 +135,7 @@ function loadData() {
     if (!d.games) d.games = [];
     if (!d.lots) d.lots = [];
     // Migration Sprint1: ajouter sellPlatform si manquant (preserve donnees existantes)
-    d.games = d.games.map(function(g){ return g.sellPlatform !== undefined ? g : Object.assign({}, g, {sellPlatform:''}); });
+    d.games = d.games.map(function(g){ var g2 = g.sellPlatform !== undefined ? g : Object.assign({}, g, {sellPlatform:''}); return g2.photo !== undefined ? g2 : Object.assign({}, g2, {photo:''}); });
     d.lots  = d.lots.map(function(l){ return l.sellPlatform !== undefined ? l : Object.assign({}, l, {sellPlatform:''}); });
     var changed = false;
     for (var i=0; i<SEED_LOTS.length; i++) {
@@ -262,7 +263,28 @@ async function searchGames(query) {
 }
 
 function hasAnyKey() { return !!(getTGDBKey() || getRawgKey()); }
+function getPCKey(){ return localStorage.getItem('pc-key') || ''; }
+function setPCKey(k){ localStorage.setItem('pc-key', k); }
 
+// PriceCharting: prix marche estimatif (loose = sans boite, cib = complet)
+async function fetchMarketPrice(title, platform) {
+  var key = getPCKey();
+  if (!key || !title) return null;
+  try {
+    var q   = title + (platform ? ' ' + platform : '');
+    var url = 'https://www.pricecharting.com/api/products?q=' + encodeURIComponent(q) + '&status=price&id=' + encodeURIComponent(key);
+    var r   = await fetch(url, {signal: AbortSignal.timeout(6000)});
+    if (!r.ok) return null;
+    var d = await r.json();
+    if (!d.products || !d.products.length) return null;
+    var p = d.products[0];
+    return {
+      name:   p['product-name'] || title,
+      loose:  p['loose-price']  ? (p['loose-price']  / 100).toFixed(2) : null,
+      cib:    p['cib-price']    ? (p['cib-price']    / 100).toFixed(2) : null
+    };
+  } catch(e) { return null; }
+}
 // ── CSV ────────────────────────────────────────────────────────────
 function exportCSV(games, lots) {
   var lm = {};
@@ -414,6 +436,95 @@ function GCard({game, lots, onClick, right, onQuickEdit}) {
   );
 }
 
+
+// ── Photo Capture (Sprint 2) ────────────────────────────────────────
+function PhotoCapture({value, onChange}) {
+  var inputRef = useRef(null);
+  function handleFile(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) { onChange(ev.target.result); };
+    reader.readAsDataURL(file);
+  }
+  function remove() { onChange(''); if (inputRef.current) inputRef.current.value = ''; }
+  return (
+    <div style={{marginBottom:14}}>
+      <Lbl t="PHOTO DE L ETAT"/>
+      {value ? (
+        <div style={{position:'relative',display:'inline-block'}}>
+          <img src={value} alt="etat" style={{width:'100%',maxHeight:180,objectFit:'cover',borderRadius:10,border:'1px solid '+C.border}}/>
+          <button onClick={remove} style={{position:'absolute',top:6,right:6,background:'rgba(0,0,0,.7)',borderRadius:'50%',width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff'}}>
+            <IX size={14}/>
+          </button>
+        </div>
+      ) : (
+        <div onClick={function(){ inputRef.current && inputRef.current.click(); }}
+          style={{width:'100%',background:C.card2,border:'2px dashed '+C.border,borderRadius:10,padding:'20px',display:'flex',flexDirection:'column',alignItems:'center',gap:8,cursor:'pointer'}}>
+          <ICam size={28} style={{color:C.muted}}/>
+          <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Prendre une photo ou importer</span>
+        </div>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{display:'none'}}/>
+    </div>
+  );
+}
+
+// ── Market Price Widget (Sprint 2) ──────────────────────────────────
+function MarketPriceWidget({title, platform}) {
+  var [price, setPrice] = useState(null);
+  var [loading, setLoading] = useState(false);
+  var [checked, setChecked] = useState(false);
+  var [showKeyInput, setShowKeyInput] = useState(false);
+
+  async function lookup() {
+    if (!getPCKey()) { setShowKeyInput(true); return; }
+    setLoading(true);
+    var res = await fetchMarketPrice(title, platform);
+    setPrice(res);
+    setChecked(true);
+    setLoading(false);
+  }
+
+  if (!title || title.length < 3) return null;
+
+  return (
+    <div style={{marginBottom:14}}>
+      {!checked && !showKeyInput && (
+        <button onClick={lookup} style={{width:'100%',background:'rgba(168,85,247,.12)',border:'1px solid rgba(168,85,247,.4)',borderRadius:10,padding:'10px',display:'flex',alignItems:'center',justifyContent:'center',gap:8,fontFamily:'Outfit',fontWeight:600,fontSize:13,color:'#a855f7'}}>
+          {loading ? <ILoader size={15} style={{animation:'spin 1s linear infinite'}}/> : null}
+          {loading ? 'Recherche prix marche...' : 'Voir le prix marche (PriceCharting)'}
+        </button>
+      )}
+      {showKeyInput && (
+        <div className="fi" style={{background:'rgba(168,85,247,.08)',border:'1px solid rgba(168,85,247,.3)',borderRadius:10,padding:12}}>
+          <div style={{fontFamily:'Outfit',fontSize:12,color:'#a855f7',fontWeight:600,marginBottom:4}}>Cle PriceCharting requise</div>
+          <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,marginBottom:8}}>Cle gratuite sur pricecharting.com/api (section API Key)</div>
+          <div style={{display:'flex',gap:8}}>
+            <input id="pc-key-inp" placeholder="Coller la cle ici..." style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:7,padding:'7px 10px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:11,outline:'none'}}/>
+            <button onClick={function(){var i=document.getElementById('pc-key-inp');if(i&&i.value.trim()){setPCKey(i.value.trim());setShowKeyInput(false);lookup();}}} style={{background:'#a855f7',borderRadius:7,padding:'7px 10px',color:'#fff',fontFamily:'Outfit',fontWeight:700,fontSize:11}}>OK</button>
+          </div>
+        </div>
+      )}
+      {checked && price && (
+        <div style={{background:'rgba(168,85,247,.08)',border:'1px solid rgba(168,85,247,.3)',borderRadius:10,padding:12}}>
+          <div style={{fontFamily:'Outfit',fontSize:11,color:'#a855f7',fontWeight:600,marginBottom:8}}>Prix marche estime</div>
+          <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+            {price.loose && <div style={{flex:1,minWidth:80}}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:2}}>LOOSE</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:'#a855f7'}}>{price.loose} EUR</div></div>}
+            {price.cib   && <div style={{flex:1,minWidth:80}}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:2}}>COMPLET</div><div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:16,fontWeight:600,color:'#a855f7'}}>{price.cib} EUR</div></div>}
+          </div>
+          <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginTop:6}}>Source: PriceCharting - {price.name}</div>
+        </div>
+      )}
+      {checked && !price && (
+        <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,textAlign:'center',padding:'8px 0'}}>Aucun prix trouve sur PriceCharting</div>
+      )}
+    </div>
+  );
+}
+
+
+// ── Market Price Widget (PriceCharting) ────────────────────────────
 // ── Title Autocomplete ─────────────────────────────────────────────
 function TitleInput({value, onChange, onSelect}) {
   var [suggestions, setSuggestions] = useState([]);
@@ -882,6 +993,7 @@ function GameForm({init, lots, onSave, onBack}) {
           onSelect={function(s){ setG(function(prev){ return Object.assign({},prev,{title:s.title,platform:s.platform||prev.platform,image:s.image||prev.image}); }); setLkSt('idle'); }}
         />
         <Gap />
+        <MarketPriceWidget title={g.title} platform={g.platform}/>
 
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
           <div>
@@ -984,6 +1096,7 @@ function GameDetail({data, selectedId, navigate, updateData}) {
       </div>
       <div style={{padding:'0 16px'}}>
         {game.image && <div style={{textAlign:'center',marginBottom:14}}><img src={game.image} alt="" style={{maxHeight:100,maxWidth:170,borderRadius:10,objectFit:'contain',background:'#fff',padding:4}} /></div>}
+        {!il && <MarketPriceWidget title={game.title} platform={game.platform}/>}
         {il && lot
           ? <div onClick={function(){ navigate('ld',lot.id); }} style={{background:C.acc2,border:'1px solid '+C.acc+'40',borderRadius:16,padding:'14px 16px',marginBottom:14,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <div>
