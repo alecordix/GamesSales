@@ -11,6 +11,7 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;background:#0a0a0f;overflow-x:hidden}
@@ -60,9 +61,14 @@ function IEdit({size,style})    { return React.createElement(SvgIcon,{size,style
 function ITrend({size,style})   { return React.createElement(SvgIcon,{size,style},React.createElement('polyline',{points:'22 7 13.5 15.5 8.5 10.5 2 17'}),React.createElement('polyline',{points:'16 7 22 7 22 13'})); }
 function IUserPlus({size,style}){ return React.createElement(SvgIcon,{size,style},React.createElement('path',{d:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'}),React.createElement('circle',{cx:'12',cy:'7',r:'4'}),React.createElement('line',{x1:'19',y1:'8',x2:'19',y2:'14'}),React.createElement('line',{x1:'22',y1:'11',x2:'16',y2:'11'})); }
 function IMinus({size,style})   { return React.createElement(SvgIcon,{size,style},React.createElement('circle',{cx:'12',cy:'12',r:'10'}),React.createElement('line',{x1:'8',y1:'12',x2:'16',y2:'12'})); }
+function IStats({size,style})  { return React.createElement(SvgIcon,{size,style},React.createElement('line',{x1:'18',y1:'20',x2:'18',y2:'10'}),React.createElement('line',{x1:'12',y1:'20',x2:'12',y2:'4'}),React.createElement('line',{x1:'6',y1:'20',x2:'6',y2:'14'})); }
+function ISort({size,style})   { return React.createElement(SvgIcon,{size,style},React.createElement('line',{x1:'3',y1:'6',x2:'21',y2:'6'}),React.createElement('line',{x1:'6',y1:'12',x2:'18',y2:'12'}),React.createElement('line',{x1:'9',y1:'18',x2:'15',y2:'18'})); }
+function IFilter({size,style}) { return React.createElement(SvgIcon,{size,style},React.createElement('polygon',{points:'22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'})); }
 
 // ── Constants ──────────────────────────────────────────────────────
 var PLATS = ['PS5','PS4','PS3','PS2','Xbox Series','Xbox One','Xbox 360','Switch','Wii U','Wii','3DS','DS','GBA','PC','Autre'];
+var SELL_PLATS = ['','eBay','Vinted','LeBonCoin','Rakuten','Facebook','Autre'];
+var SELL_COLORS = {'eBay':'#e53238','Vinted':'#09b1ba','LeBonCoin':'#ff6e14','Rakuten':'#bf0000','Facebook':'#1877f2'};
 var CONDS = ['Neuf','Tres bon etat','Bon etat','Correct','Mauvais etat'];
 var STATS = ['En stock','Vendu','Reserve'];
 var PLAT_COLORS = {'PS5':'#003791','PS4':'#003791','PS3':'#003791','PS2':'#003791','Xbox Series':'#107C10','Xbox One':'#107C10','Xbox 360':'#107C10','Switch':'#E4000F','Wii U':'#009AC7','Wii':'#aaaaaa','3DS':'#CC0000','DS':'#CC0000','GBA':'#720E9E','PC':'#1B2838'};
@@ -127,6 +133,9 @@ function loadData() {
     var d = raw ? JSON.parse(raw) : {games:[], lots:[]};
     if (!d.games) d.games = [];
     if (!d.lots) d.lots = [];
+    // Migration Sprint1: ajouter sellPlatform si manquant (preserve donnees existantes)
+    d.games = d.games.map(function(g){ return g.sellPlatform !== undefined ? g : Object.assign({}, g, {sellPlatform:''}); });
+    d.lots  = d.lots.map(function(l){ return l.sellPlatform !== undefined ? l : Object.assign({}, l, {sellPlatform:''}); });
     var changed = false;
     for (var i=0; i<SEED_LOTS.length; i++) {
       var sl = SEED_LOTS[i];
@@ -315,8 +324,56 @@ function Toast({msg, type}) {
   );
 }
 
+// ── Sell Platform Badge ────────────────────────────────────────────
+function SellBadge({platform}) {
+  if (!platform) return null;
+  var col = SELL_COLORS[platform] || C.muted;
+  return React.createElement('span', {style:{fontSize:10,padding:'1px 7px',borderRadius:20,background:col+'25',color:col,fontWeight:600,fontFamily:'Outfit'}}, platform);
+}
+
+// ── Quick Edit Bar ──────────────────────────────────────────────────
+function QuickEditBar({game, onSave}) {
+  var [open, setOpen] = useState(false);
+  var [vente, setVente] = useState(game.prixVente || '');
+  var [status, setStatus] = useState(game.status || 'En stock');
+  var [sp, setSp] = useState(game.sellPlatform || '');
+  function save() { onSave({prixVente:vente, status:status, sellPlatform:sp}); setOpen(false); }
+  if (!open) return (
+    <div onClick={function(e){e.stopPropagation();setOpen(true);}} style={{borderTop:'1px solid '+C.border,padding:'6px 18px',display:'flex',alignItems:'center',gap:6,cursor:'pointer',background:C.card2+'80'}}>
+      <IEdit size={12} style={{color:C.muted}}/>
+      <span style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>Edition rapide</span>
+    </div>
+  );
+  return (
+    <div style={{borderTop:'1px solid '+C.border,padding:'10px 14px',background:C.card2}} onClick={function(e){e.stopPropagation();}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:8}}>
+        <div>
+          <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:3}}>VENTE EUR</div>
+          <input value={vente} onChange={function(e){setVente(e.target.value);}} type="number" placeholder="0.00" style={{width:'100%',background:C.bg,border:'1px solid '+C.border,borderRadius:7,padding:'6px 8px',color:C.text,fontFamily:'"JetBrains Mono",monospace',fontSize:13,outline:'none'}}/>
+        </div>
+        <div>
+          <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:3}}>STATUT</div>
+          <select value={status} onChange={function(e){setStatus(e.target.value);}} style={{width:'100%',background:C.bg,border:'1px solid '+C.border,borderRadius:7,padding:'6px 8px',color:C.text,fontFamily:'Outfit',fontSize:12,outline:'none',appearance:'none'}}>
+            {STATS.map(function(s){ return <option key={s} value={s}>{s}</option>; })}
+          </select>
+        </div>
+        <div>
+          <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:3}}>VENDU SUR</div>
+          <select value={sp} onChange={function(e){setSp(e.target.value);}} style={{width:'100%',background:C.bg,border:'1px solid '+C.border,borderRadius:7,padding:'6px 8px',color:C.text,fontFamily:'Outfit',fontSize:12,outline:'none',appearance:'none'}}>
+            {SELL_PLATS.map(function(p){ return <option key={p} value={p}>{p||'Aucune'}</option>; })}
+          </select>
+        </div>
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <button onClick={save} style={{flex:1,background:C.acc,borderRadius:8,padding:'7px',fontFamily:'Outfit',fontWeight:700,fontSize:13,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}><ICheck size={13}/> Sauvegarder</button>
+        <button onClick={function(){setOpen(false);}} style={{background:C.card,border:'1px solid '+C.border,borderRadius:8,padding:'7px 12px',color:C.muted,fontFamily:'Outfit',fontSize:13}}>Annuler</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Game Card ──────────────────────────────────────────────────────
-function GCard({game, lots, onClick, right}) {
+function GCard({game, lots, onClick, right, onQuickEdit}) {
   lots = lots || [];
   var il = !!game.lotId;
   var lot = il ? lots.find(function(l){ return l.id === game.lotId; }) : null;
@@ -325,30 +382,34 @@ function GCard({game, lots, onClick, right}) {
   var platC = PLAT_COLORS[game.platform] || '#444';
   var stColors = {Vendu:C.green, Reserve:C.blue, 'En stock':'#555'};
   return (
-    <div onClick={onClick} className="gc" style={{background:C.card,border:'1px solid '+C.border,borderRadius:14,padding:'13px 14px 13px 18px',marginBottom:10,cursor:onClick?'pointer':'default',display:'flex',alignItems:'center',gap:12,position:'relative',overflow:'hidden'}}>
-      <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:platC,borderRadius:'14px 0 0 14px'}} />
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:15,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-          {game.title || <span style={{color:C.muted,fontStyle:'italic'}}>Sans titre</span>}
+    <div style={{background:C.card,border:'1px solid '+C.border,borderRadius:14,marginBottom:10,overflow:'hidden'}}>
+      <div onClick={onClick} className="gc" style={{padding:'12px 14px 12px 18px',cursor:onClick?'pointer':'default',display:'flex',alignItems:'center',gap:12,position:'relative'}}>
+        <div style={{position:'absolute',left:0,top:0,bottom:0,width:4,background:platC,borderRadius:'14px 0 0 0'}} />
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:'Outfit',fontWeight:600,fontSize:15,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+            {game.title || <span style={{color:C.muted,fontStyle:'italic'}}>Sans titre</span>}
+          </div>
+          <div style={{display:'flex',gap:6,marginTop:4,alignItems:'center',flexWrap:'wrap'}}>
+            {game.platform && <span style={{fontSize:11,color:C.muted}}>{game.platform}</span>}
+            {game.condition && <span style={{fontSize:11,color:C.muted}}>· {game.condition}</span>}
+            {!il && game.status && <span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:(stColors[game.status]||'#555')+'20',color:stColors[game.status]||C.muted,fontWeight:500}}>{game.status}</span>}
+            {game.sellPlatform && <SellBadge platform={game.sellPlatform}/>}
+            {il && lot && <span style={{fontSize:11,color:C.acc}}>lot: {lot.name}</span>}
+          </div>
         </div>
-        <div style={{display:'flex',gap:8,marginTop:4,alignItems:'center',flexWrap:'wrap'}}>
-          {game.platform && <span style={{fontSize:11,color:C.muted}}>{game.platform}</span>}
-          {game.condition && <span style={{fontSize:11,color:C.muted}}>· {game.condition}</span>}
-          {!il && game.status && <span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:(stColors[game.status]||'#555')+'20',color:stColors[game.status]||C.muted,fontWeight:500}}>{game.status}</span>}
-          {il && lot && <span style={{fontSize:11,color:C.acc}}>📦 {lot.name}</span>}
-        </div>
+        {right || (
+          <div style={{textAlign:'right',flexShrink:0}}>
+            {il
+              ? <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,fontStyle:'italic'}}>Prix au lot</div>
+              : <div>
+                  <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:pc}}>{p >= 0 ? '+' : ''}{fmt(p)}</div>
+                  <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:2}}>{fmt(game.prixAchat)} &rarr; {fmt(game.prixVente)}</div>
+                </div>
+            }
+          </div>
+        )}
       </div>
-      {right || (
-        <div style={{textAlign:'right',flexShrink:0}}>
-          {il
-            ? <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted,fontStyle:'italic'}}>Prix au lot</div>
-            : <div>
-                <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:pc}}>{p >= 0 ? '+' : ''}{fmt(p)}</div>
-                <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:11,color:C.muted,marginTop:2}}>{fmt(game.prixAchat)} &rarr; {fmt(game.prixVente)}</div>
-              </div>
-          }
-        </div>
-      )}
+      {onQuickEdit && !il && <QuickEditBar game={game} onSave={onQuickEdit}/>}
     </div>
   );
 }
@@ -632,57 +693,121 @@ function HomeScreen({data, navigate}) {
 }
 
 // ── Inventory ──────────────────────────────────────────────────────
-function InvScreen({data, navigate}) {
+function InvScreen({data, navigate, updateData}) {
   var games = data.games || [];
-  var lots = data.lots || [];
-  var [q, setQ] = useState('');
-  var [sf, setSf] = useState('');
-  var [pf, setPf] = useState('');
+  var lots  = data.lots  || [];
+  var [q,setQ]     = useState('');
+  var [sf,setSf]   = useState('');
+  var [pf,setPf]   = useState('');
+  var [spf,setSpf] = useState('');
+  var [sortBy,setSortBy]   = useState('date');
+  var [sortDir,setSortDir] = useState('desc');
+  var [showF,setShowF]     = useState(false);
 
   var filtered = games.filter(function(g) {
     if (q && !(g.title||'').toLowerCase().includes(q.toLowerCase()) && !(g.platform||'').toLowerCase().includes(q.toLowerCase())) return false;
     if (sf === 'En lot' && !g.lotId) return false;
     if (sf && sf !== 'En lot' && (g.lotId || g.status !== sf)) return false;
-    if (pf && g.platform !== pf) return false;
+    if (pf  && g.platform !== pf) return false;
+    if (spf && (g.sellPlatform||'') !== spf) return false;
     return true;
-  }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+  }).sort(function(a,b) {
+    var dir = sortDir === 'asc' ? 1 : -1;
+    if (sortBy === 'profit')   return (gProfit(a) - gProfit(b)) * dir;
+    if (sortBy === 'name')     return (a.title||'').localeCompare(b.title||'') * dir;
+    if (sortBy === 'platform') return (a.platform||'').localeCompare(b.platform||'') * dir;
+    if (sortBy === 'price')    return (parseFloat(a.prixVente||0) - parseFloat(b.prixVente||0)) * dir;
+    return ((b.createdAt||0) - (a.createdAt||0)) * dir;
+  });
 
-  var platforms = Array.from(new Set(games.map(function(g){ return g.platform; }).filter(Boolean)));
+  var platforms     = Array.from(new Set(games.map(function(g){ return g.platform; }).filter(Boolean)));
+  var sellPlatforms = Array.from(new Set(games.map(function(g){ return g.sellPlatform; }).filter(Boolean)));
+
+  function quickEdit(gid, changes) {
+    updateData(Object.assign({}, data, {games: games.map(function(g){ return g.id===gid ? Object.assign({},g,changes) : g; })}));
+  }
+
+  var sortOpts = [{v:'date',l:'Date'},{v:'profit',l:'Benefice'},{v:'name',l:'Nom'},{v:'platform',l:'Plateforme'},{v:'price',l:'Prix'}];
 
   return (
     <div style={{paddingBottom:90}} className="su">
       <div style={{padding:'28px 16px 14px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Inventaire</div>
-          <button onClick={function(){ exportCSV(games,lots); }} style={{display:'flex',alignItems:'center',gap:6,color:C.muted,fontFamily:'Outfit',fontSize:13,border:'1px solid '+C.border,borderRadius:9,padding:'6px 12px',background:C.card2}}>
-            <IDL size={14} /> CSV
-          </button>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={function(){ setShowF(function(v){ return !v; }); }} style={{display:'flex',alignItems:'center',gap:5,color:showF?C.acc:C.muted,fontFamily:'Outfit',fontSize:12,border:'1px solid '+(showF?C.acc:C.border),borderRadius:8,padding:'6px 10px',background:showF?C.acc2:C.card2}}>
+              <IFilter size={13}/> Filtres
+            </button>
+            <button onClick={function(){ exportCSV(games,lots); }} style={{display:'flex',alignItems:'center',gap:5,color:C.muted,fontFamily:'Outfit',fontSize:12,border:'1px solid '+C.border,borderRadius:8,padding:'6px 10px',background:C.card2}}>
+              <IDL size={14}/> CSV
+            </button>
+          </div>
         </div>
         <div style={{position:'relative',marginBottom:10}}>
-          <ISearch size={15} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:C.muted}} />
-          <input value={q} onChange={function(e){ setQ(e.target.value); }} placeholder="Rechercher..."
-            style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'10px 14px 10px 35px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}} />
+          <ISearch size={15} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:C.muted}}/>
+          <input value={q} onChange={function(e){ setQ(e.target.value); }} placeholder="Rechercher..." style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'10px 14px 10px 35px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}}/>
         </div>
-        <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:4}}>
-          {['','En stock','Vendu','Reserve','En lot'].map(function(s){
-            return <button key={s} onClick={function(){ setSf(s); }} style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontFamily:'Outfit',fontSize:12,fontWeight:500,background:sf===s?C.acc:C.card2,color:sf===s?'#000':C.muted,border:'1px solid '+(sf===s?C.acc:C.border)}}>{s||'Tous'}</button>;
-          })}
-          {platforms.map(function(p){
-            return <button key={p} onClick={function(){ setPf(pf===p?'':p); }} style={{flexShrink:0,padding:'5px 13px',borderRadius:20,fontFamily:'Outfit',fontSize:12,fontWeight:500,background:pf===p?C.acc:C.card2,color:pf===p?'#000':C.muted,border:'1px solid '+(pf===p?C.acc:C.border)}}>{p}</button>;
-          })}
+        <div style={{display:'flex',gap:5,marginBottom:8,alignItems:'center'}}>
+          <ISort size={12} style={{color:C.muted,flexShrink:0}}/>
+          <div style={{display:'flex',gap:5,overflowX:'auto',flex:1}}>
+            {sortOpts.map(function(opt){
+              var active = sortBy === opt.v;
+              return (
+                <button key={opt.v} onClick={function(){ if(active){setSortDir(function(d){return d==='asc'?'desc':'asc';});}else{setSortBy(opt.v);setSortDir('desc');} }}
+                  style={{flexShrink:0,padding:'4px 10px',borderRadius:16,fontFamily:'Outfit',fontSize:11,fontWeight:500,background:active?C.acc:C.card2,color:active?'#000':C.muted,border:'1px solid '+(active?C.acc:C.border)}}>
+                  {opt.l}{active?(sortDir==='desc'?' v':' ^'):''}
+                </button>
+              );
+            })}
+          </div>
         </div>
+        {showF && (
+          <div className="fi" style={{background:C.card,borderRadius:10,padding:12,marginBottom:4}}>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+              <div style={{flex:1,minWidth:100}}>
+                <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:4}}>STATUT</div>
+                <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                  {['','En stock','Vendu','Reserve','En lot'].map(function(s){return(
+                    <button key={s} onClick={function(){setSf(s);}} style={{padding:'3px 8px',borderRadius:16,fontFamily:'Outfit',fontSize:11,background:sf===s?C.acc:C.card2,color:sf===s?'#000':C.muted,border:'1px solid '+(sf===s?C.acc:C.border)}}>{s||'Tous'}</button>
+                  );}) }
+                </div>
+              </div>
+              {platforms.length > 0 && (
+                <div style={{flex:1,minWidth:100}}>
+                  <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:4}}>PLATEFORME</div>
+                  <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                    <button onClick={function(){setPf('');}} style={{padding:'3px 8px',borderRadius:16,fontFamily:'Outfit',fontSize:11,background:!pf?C.acc:C.card2,color:!pf?'#000':C.muted,border:'1px solid '+(!pf?C.acc:C.border)}}>Toutes</button>
+                    {platforms.map(function(p){return(
+                      <button key={p} onClick={function(){setPf(pf===p?'':p);}} style={{padding:'3px 8px',borderRadius:16,fontFamily:'Outfit',fontSize:11,background:pf===p?C.acc:C.card2,color:pf===p?'#000':C.muted,border:'1px solid '+(pf===p?C.acc:C.border)}}>{p}</button>
+                    );}) }
+                  </div>
+                </div>
+              )}
+              {sellPlatforms.length > 0 && (
+                <div style={{flex:1,minWidth:100}}>
+                  <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:4}}>VENDU SUR</div>
+                  <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                    <button onClick={function(){setSpf('');}} style={{padding:'3px 8px',borderRadius:16,fontFamily:'Outfit',fontSize:11,background:!spf?C.acc:C.card2,color:!spf?'#000':C.muted,border:'1px solid '+(!spf?C.acc:C.border)}}>Toutes</button>
+                    {sellPlatforms.map(function(sp){var col=SELL_COLORS[sp]||C.muted;return(
+                      <button key={sp} onClick={function(){setSpf(spf===sp?'':sp);}} style={{padding:'3px 8px',borderRadius:16,fontFamily:'Outfit',fontSize:11,background:spf===sp?col:C.card2,color:spf===sp?'#fff':C.muted,border:'1px solid '+(spf===sp?col:C.border)}}>{sp}</button>
+                    );}) }
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       <div style={{padding:'10px 16px'}}>
         <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:10}}>{filtered.length} jeu{filtered.length!==1?'x':''}</div>
         {filtered.length === 0
           ? <div style={{textAlign:'center',padding:'44px 0',color:C.muted,fontFamily:'Outfit'}}>Aucun resultat</div>
-          : filtered.map(function(g){ return <GCard key={g.id} game={g} lots={lots} onClick={function(){ navigate('gd',g.id); }} />; })
+          : filtered.map(function(g){ return <GCard key={g.id} game={g} lots={lots} onClick={function(){ navigate('gd',g.id); }} onQuickEdit={function(ch){ quickEdit(g.id,ch); }}/>; })
         }
       </div>
     </div>
   );
 }
-
 // ── Game Form ──────────────────────────────────────────────────────
 function emptyGame() {
   return {id:'',barcode:'',title:'',platform:'',condition:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:'',notes:'',image:'',createdAt:ts()};
@@ -801,11 +926,19 @@ function GameForm({init, lots, onSave, onBack}) {
         )}
 
         {!il && (
-          <div style={{marginBottom:14}}>
-            <Lbl t="STATUT" />
-            <Sel value={g.status} onChange={function(v){ upd('status',v); }}>
-              {STATS.map(function(s){ return <option key={s} value={s}>{s}</option>; })}
-            </Sel>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+            <div>
+              <Lbl t="STATUT" />
+              <Sel value={g.status} onChange={function(v){ upd('status',v); }}>
+                {STATS.map(function(s){ return <option key={s} value={s}>{s}</option>; })}
+              </Sel>
+            </div>
+            <div>
+              <Lbl t="VENDU SUR" />
+              <Sel value={g.sellPlatform||''} onChange={function(v){ upd('sellPlatform',v); }}>
+                {SELL_PLATS.map(function(p){ return <option key={p} value={p}>{p||'Aucune'}</option>; })}
+              </Sel>
+            </div>
           </div>
         )}
 
@@ -847,6 +980,7 @@ function GameDetail({data, selectedId, navigate, updateData}) {
         {game.platform && <div style={{display:'inline-block',padding:'3px 10px',borderRadius:20,background:platC+'25',color:platC,fontFamily:'Outfit',fontSize:12,fontWeight:600,marginBottom:8}}>{game.platform}</div>}
         <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text,lineHeight:1.2}}>{game.title || 'Sans titre'}</div>
         {game.condition && <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:4}}>{game.condition}</div>}
+        {game.sellPlatform && <div style={{marginTop:8}}><SellBadge platform={game.sellPlatform}/></div>}
       </div>
       <div style={{padding:'0 16px'}}>
         {game.image && <div style={{textAlign:'center',marginBottom:14}}><img src={game.image} alt="" style={{maxHeight:100,maxWidth:170,borderRadius:10,objectFit:'contain',background:'#fff',padding:4}} /></div>}
@@ -1221,13 +1355,146 @@ function LotDetail({data, selectedId, navigate, updateData}) {
   );
 }
 
+
+// ── Stats Screen (Sprint 1) ────────────────────────────────────────
+function StatsScreen({data}) {
+  var games = data.games || [];
+  var lots  = data.lots  || [];
+  var soldLots   = lots.filter(function(l){ return l.status === 'Vendu'; });
+  var soldLotIds = new Set(soldLots.map(function(l){ return l.id; }));
+  var soldSolo   = games.filter(function(g){ return g.status === 'Vendu' && !g.lotId; });
+  var soldInLots = games.filter(function(g){ return g.lotId && soldLotIds.has(g.lotId); });
+
+  // Benefice par plateforme console
+  var byPlat = {};
+  games.filter(function(g){ return !g.lotId; }).forEach(function(g) {
+    var pl = g.platform || 'Autre';
+    if (!byPlat[pl]) byPlat[pl] = {profit:0, count:0, sold:0};
+    byPlat[pl].count++;
+    if (g.status === 'Vendu') { byPlat[pl].profit += gProfit(g); byPlat[pl].sold++; }
+  });
+  var platStats = Object.keys(byPlat).map(function(k){
+    return {name:k, profit:byPlat[k].profit, count:byPlat[k].count, sold:byPlat[k].sold};
+  }).sort(function(a,b){ return b.profit - a.profit; });
+
+  // Benefice par plateforme de vente
+  var bySell = {};
+  soldSolo.filter(function(g){ return g.sellPlatform; }).forEach(function(g) {
+    var sp = g.sellPlatform;
+    if (!bySell[sp]) bySell[sp] = {profit:0, count:0};
+    bySell[sp].profit += gProfit(g); bySell[sp].count++;
+  });
+  soldLots.filter(function(l){ return l.sellPlatform; }).forEach(function(l) {
+    var sp = l.sellPlatform;
+    if (!bySell[sp]) bySell[sp] = {profit:0, count:0};
+    bySell[sp].profit += lProfit(l); bySell[sp].count++;
+  });
+
+  var totalSolo = soldSolo.reduce(function(s,g){ return s + gProfit(g); }, 0);
+  var avgProfit = soldSolo.length > 0 ? (totalSolo / soldSolo.length) : 0;
+
+  // Historique mensuel
+  var monthly = {};
+  soldSolo.forEach(function(g){ if(g.createdAt){ var k=monthKey(g.createdAt); if(!monthly[k])monthly[k]=0; monthly[k]+=gProfit(g); } });
+  soldLots.forEach(function(l){ if(l.createdAt){ var k=monthKey(l.createdAt); if(!monthly[k])monthly[k]=0; monthly[k]+=lProfit(l); } });
+  var months = Object.keys(monthly).sort();
+
+  var chartRef  = useRef(null);
+  var chartInst = useRef(null);
+  useEffect(function() {
+    if (!chartRef.current || months.length === 0) return;
+    if (chartInst.current) chartInst.current.destroy();
+    chartInst.current = new Chart(chartRef.current, {
+      type: 'bar',
+      data: {
+        labels: months.map(monthLabel),
+        datasets: [{label:'Benefice',data:months.map(function(m){ return monthly[m].toFixed(2); }),backgroundColor:'rgba(245,166,35,.7)',borderColor:'#f5a623',borderWidth:1,borderRadius:6}]
+      },
+      options: {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:C.muted,font:{size:11}},grid:{color:'#252538'}},y:{ticks:{color:C.muted,font:{size:11}},grid:{color:'#252538'}}}}
+    });
+    return function(){ if (chartInst.current) chartInst.current.destroy(); };
+  }, [months.join(',')]);
+
+  var noData = platStats.length === 0 && months.length === 0;
+
+  return (
+    <div style={{paddingBottom:90}} className="su">
+      <div style={{padding:'28px 16px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:C.text}}>Statistiques</div>
+        <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>Analyse de tes ventes</div>
+      </div>
+      <div style={{padding:'0 16px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:20}}>
+          {[
+            {l:'Benefice moyen / jeu', v:fmt(avgProfit), col:avgProfit>=0?C.green:C.red},
+            {l:'Jeux vendus',          v:''+soldSolo.length,                    col:C.text},
+            {l:'Lots vendus',          v:''+soldLots.length,                    col:C.text},
+            {l:'Total vendus',         v:''+(soldSolo.length+soldInLots.length), col:C.text}
+          ].map(function(item){ return (
+            <div key={item.l} style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'13px 14px'}}>
+              <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,letterSpacing:.7,marginBottom:6,fontWeight:500}}>{item.l}</div>
+              <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:20,fontWeight:600,color:item.col}}>{item.v}</div>
+            </div>
+          ); })}
+        </div>
+
+        {months.length > 0 && (
+          <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'14px',marginBottom:20}}>
+            <div style={{fontFamily:'Syne,sans-serif',fontSize:15,fontWeight:700,color:C.text,marginBottom:12}}>Benefices par mois</div>
+            <div style={{height:160}}><canvas ref={chartRef}/></div>
+          </div>
+        )}
+
+        {platStats.length > 0 && (
+          <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'14px',marginBottom:20}}>
+            <div style={{fontFamily:'Syne,sans-serif',fontSize:15,fontWeight:700,color:C.text,marginBottom:12}}>Performance par plateforme</div>
+            {platStats.map(function(ps){ var col = PLAT_COLORS[ps.name]||'#444'; return (
+              <div key={ps.name} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid '+C.border}}>
+                <div style={{width:10,height:10,borderRadius:'50%',background:col,flexShrink:0}}/>
+                <div style={{flex:1,fontFamily:'Outfit',fontSize:13,color:C.text}}>{ps.name}</div>
+                <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>{ps.sold}/{ps.count}</div>
+                <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:ps.profit>=0?C.green:C.red,minWidth:72,textAlign:'right'}}>{ps.profit>=0?'+':''}{fmt(ps.profit)}</div>
+              </div>
+            ); })}
+          </div>
+        )}
+
+        {Object.keys(bySell).length > 0 && (
+          <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'14px',marginBottom:20}}>
+            <div style={{fontFamily:'Syne,sans-serif',fontSize:15,fontWeight:700,color:C.text,marginBottom:12}}>Performance par plateforme de vente</div>
+            {Object.keys(bySell).map(function(sp){ var col = SELL_COLORS[sp]||C.muted; return (
+              <div key={sp} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid '+C.border}}>
+                <div style={{width:10,height:10,borderRadius:'50%',background:col,flexShrink:0}}/>
+                <div style={{flex:1,fontFamily:'Outfit',fontWeight:600,fontSize:13,color:col}}>{sp}</div>
+                <div style={{fontFamily:'Outfit',fontSize:11,color:C.muted}}>{bySell[sp].count} vente{bySell[sp].count>1?'s':''}</div>
+                <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:bySell[sp].profit>=0?C.green:C.red,minWidth:72,textAlign:'right'}}>{bySell[sp].profit>=0?'+':''}{fmt(bySell[sp].profit)}</div>
+              </div>
+            ); })}
+          </div>
+        )}
+
+        {noData && (
+          <div style={{textAlign:'center',padding:'60px 0',color:C.muted,fontFamily:'Outfit',fontSize:14}}>
+            Pas encore de donnees. Commencez a vendre des jeux !
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// helpers stats
+function monthKey(ms){ var d=new Date(ms); return d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0'); }
+function monthLabel(k){ var p=k.split('-'); var m=['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec']; return m[parseInt(p[1])-1]+' '+p[0].slice(2); }
+
 // ── Bottom Nav ─────────────────────────────────────────────────────
 function Nav({screen, navigate}) {
   var tabs = [
-    {id:'home', label:'Accueil', Icon:IHome},
-    {id:'inv',  label:'Inventaire', Icon:IList},
-    {id:'add',  label:'Ajouter', Icon:IPlus, acc:true},
-    {id:'lots', label:'Lots', Icon:ILayers}
+    {id:'home',  label:'Accueil',    Icon:IHome},
+    {id:'inv',   label:'Inventaire', Icon:IList},
+    {id:'add',   label:'Ajouter',    Icon:IPlus, acc:true},
+    {id:'stats', label:'Stats',      Icon:IStats},
+    {id:'lots',  label:'Lots',       Icon:ILayers}
   ];
   return (
     <div style={{position:'fixed',bottom:0,left:0,right:0,background:C.card,borderTop:'1px solid '+C.border,display:'flex',padding:'10px 0 18px',zIndex:100}}>
@@ -1263,10 +1530,11 @@ function App() {
   var props = {data:data, navigate:navigate, selectedId:selId, updateData:updateData};
   return (
     <div style={{fontFamily:'Outfit,sans-serif',background:C.bg,minHeight:'100vh',color:C.text}}>
-      {screen === 'home' && <HomeScreen data={data} navigate={navigate} />}
-      {screen === 'inv'  && <InvScreen data={data} navigate={navigate} />}
+      {screen === 'home'  && <HomeScreen data={data} navigate={navigate} />}
+      {screen === 'inv'  && <InvScreen data={data} navigate={navigate} updateData={updateData}/>}
       {screen === 'add'  && <GameForm lots={data.lots||[]} onBack={function(){ navigate('inv'); }} onSave={handleAddSave} />}
       {screen === 'gd'   && <GameDetail data={data} selectedId={selId} navigate={navigate} updateData={updateData} />}
+      {screen === 'stats' && <StatsScreen data={data}/>}
       {screen === 'lots' && <LotsScreen data={data} navigate={navigate} updateData={updateData} />}
       {screen === 'ld'   && <LotDetail data={data} selectedId={selId} navigate={navigate} updateData={updateData} />}
       {!noNav.includes(screen) && <Nav screen={screen} navigate={navigate} />}
