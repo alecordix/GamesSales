@@ -259,30 +259,47 @@ function Scanner({onDetect,onClose}) {
 /* ─── Home ─── */
 function HomeScreen({data,navigate}) {
   const games = data.games||[], lots = data.lots||[];
+  // Statuts des lots
   const soldLots = lots.filter(l => l.status==='Vendu');
   const soldLotIds = new Set(soldLots.map(l => l.id));
+  const resvLots = lots.filter(l => l.status==='Reserve');
+  const resvLotIds = new Set(resvLots.map(l => l.id));
+  const stockLots = lots.filter(l => l.status==='En stock');
+  const stockLotIds = new Set(stockLots.map(l => l.id));
+  // Jeux vendus (solo + dans lot vendu)
   const soldSolo = games.filter(g => g.status==='Vendu' && !g.lotId);
   const soldInLots = games.filter(g => g.lotId && soldLotIds.has(g.lotId));
-  const allSold = soldSolo.length + soldInLots.length;
-  const totalBuy = games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixAchat||0),0) + lots.reduce((s,l)=>s+parseFloat(l.prixAchat||0),0);
-  const totalSell = soldSolo.reduce((s,g)=>s+parseFloat(g.prixVente||0),0) + soldLots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
-  const totalProfit = soldSolo.reduce((s,g)=>s+gP(g),0) + soldLots.reduce((s,l)=>s+lP(l),0);
-  const inStock = games.filter(g=>!g.lotId&&g.status!=='Vendu').length + lots.filter(l=>l.status!=='Vendu').reduce((s,l)=>s+games.filter(g=>g.lotId===l.id).length,0);
+  const nbVendus = soldSolo.length + soldInLots.length;
+  // En stock
+  const nbStock = games.filter(g=>!g.lotId&&g.status==='En stock').length + [...stockLotIds].reduce((s,id)=>s+games.filter(g=>g.lotId===id).length,0);
+  // Reservé
+  const nbResv = games.filter(g=>!g.lotId&&g.status==='Reserve').length + [...resvLotIds].reduce((s,id)=>s+games.filter(g=>g.lotId===id).length,0);
+  // Financier
+  const totalInvesti = games.filter(g=>!g.lotId).reduce((s,g)=>s+parseFloat(g.prixAchat||0),0) + lots.reduce((s,l)=>s+parseFloat(l.prixAchat||0),0);
+  const totalRevenus = soldSolo.reduce((s,g)=>s+parseFloat(g.prixVente||0),0) + soldLots.reduce((s,l)=>s+parseFloat(l.prixVente||0),0);
+  const totalBenef = totalRevenus - totalInvesti;
   const recent = [...games].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,5);
-  const stats = [{l:'INVESTI',v:fmt(totalBuy)},{l:'EN STOCK',v:inStock+' jeux'},{l:'REVENUS',v:fmt(totalSell)},{l:'BENEFICE',v:fmt(totalProfit),col:totalProfit>=0?C.green:C.red}];
   return (
     <div style={{paddingBottom:90}} className="su">
-      <div style={{padding:'40px 20px 24px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
-        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
-          <div><div style={{fontFamily:'Syne,sans-serif',fontSize:32,fontWeight:800,color:C.text,letterSpacing:-.5}}>GameTrack</div><div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginTop:2}}>Suivi revente jeux video</div></div>
-          <div style={{background:C.acc2,border:'1px solid '+C.acc+'40',borderRadius:14,padding:'8px 14px',display:'flex',alignItems:'center',gap:6}}><IconTrend size={16} style={{color:C.acc}}/><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,fontWeight:600,color:C.acc}}>{allSold} vendus</span></div>
+      <div style={{padding:'36px 20px 20px',background:'linear-gradient(170deg,'+C.card+' 0%,'+C.bg+' 100%)'}}>
+        <div style={{fontFamily:'Syne,sans-serif',fontSize:30,fontWeight:800,color:C.text,letterSpacing:-.5,marginBottom:2}}>GameTrack</div>
+        <div style={{fontFamily:'Outfit',fontSize:13,color:C.muted,marginBottom:16}}>Suivi revente jeux video</div>
+        {/* Compteurs statuts */}
+        <div style={{display:'flex',gap:8}}>
+          {[{l:'En stock',v:nbStock,col:C.blue},{l:'Reserve',v:nbResv,col:C.acc},{l:'Vendus',v:nbVendus,col:C.green}].map(({l,v,col})=>(
+            <div key={l} style={{flex:1,background:col+'18',border:'1px solid '+col+'40',borderRadius:12,padding:'10px 12px',textAlign:'center'}}>
+              <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:22,fontWeight:600,color:col}}>{v}</div>
+              <div style={{fontFamily:'Outfit',fontSize:10,color:col+'cc',marginTop:2,fontWeight:500}}>{l}</div>
+            </div>
+          ))}
         </div>
       </div>
-      <div style={{padding:'0 16px 20px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-        {stats.map(({l,v,col}) => (
-          <div key={l} style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'14px 16px'}}>
-            <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,letterSpacing:.8,marginBottom:7,fontWeight:500}}>{l}</div>
-            <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:19,fontWeight:600,color:col||C.text}}>{v}</div>
+      {/* Stats financieres */}
+      <div style={{padding:'12px 16px 20px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+        {[{l:'INVESTI',v:fmt(totalInvesti)},{l:'REVENUS',v:fmt(totalRevenus)},{l:'BENEFICE',v:fmt(totalBenef),col:totalBenef>=0?C.green:C.red}].map(({l,v,col})=>(
+          <div key={l} style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'12px 14px'}}>
+            <div style={{fontFamily:'Outfit',fontSize:9,color:C.muted,letterSpacing:.8,marginBottom:6,fontWeight:500}}>{l}</div>
+            <div style={{fontFamily:'"JetBrains Mono",monospace',fontSize:15,fontWeight:600,color:col||C.text}}>{v}</div>
           </div>
         ))}
       </div>
@@ -542,19 +559,63 @@ function LotsScreen({data,navigate,updateData}) {
   );
 }
 
+
+/* ─── Inline mini-form to create a game directly in a lot ─── */
+function InlineLotGameForm({onClose,onSave}) {
+  const [g,setG] = useState({title:'',platform:'',condition:'',notes:''});
+  const [scanning,setScanning] = useState(false);
+  const [lkSt,setLkSt] = useState('idle');
+  const [toast,setToast] = useState({msg:'',type:'info'});
+  const upd=(k,v)=>setG(prev=>Object.assign({},prev,{[k]:v}));
+  const showT=(msg,type)=>{setToast({msg,type:type||'info'});setTimeout(()=>setToast({msg:'',type:'info'}),3500);};
+  async function handleCode(code) {
+    setScanning(false); upd('barcode',code); setLkSt('loading'); showT('Recherche...');
+    const info = await upcLookup(code);
+    if(info && info.title) { setG(prev=>Object.assign({},prev,{barcode:code,title:info.title,platform:info.platform||prev.platform,image:info.image||prev.image})); setLkSt('ok'); showT('Trouve !','ok'); }
+    else { setLkSt('err'); showT('Non trouve - remplissez manuellement','err'); }
+  }
+  function save() {
+    if(!g.title.trim()) { showT('Titre requis','err'); return; }
+    onSave(Object.assign({barcode:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:'',image:''},g));
+  }
+  return (
+    <div className="fi" style={{background:C.card2,border:'1px solid '+C.acc+'40',borderRadius:14,padding:16,marginBottom:14}}>
+      {scanning && <Scanner onDetect={handleCode} onClose={()=>setScanning(false)}/>}
+      <Toast msg={toast.msg} type={toast.type}/>
+      <div style={{fontFamily:'Syne,sans-serif',fontSize:14,fontWeight:700,color:C.text,marginBottom:12}}>Nouveau jeu dans ce lot</div>
+      <button onClick={()=>setScanning(true)} style={{width:'100%',background:lkSt==='ok'?C.green+'18':C.acc2,border:'1px solid '+(lkSt==='ok'?C.green:C.acc)+'50',borderRadius:10,padding:11,display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:12,fontFamily:'Outfit',fontWeight:600,fontSize:13,color:lkSt==='ok'?C.green:C.acc}}>
+        {lkSt==='loading'?<IconLoad size={15} style={{animation:'spin 1s linear infinite'}}/>:lkSt==='ok'?<IconChk size={15}/>:<IconCam size={15}/>}
+        {lkSt==='loading'?'Recherche...':lkSt==='ok'?'Trouve ! (re-scanner)':'Scanner le code-barre'}
+      </button>
+      <Lbl t="TITRE *"/><Inp value={g.title} onChange={v=>upd('title',v)} placeholder="Ex: FIFA 23"/>
+      <Gap h={10}/>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+        <div><Lbl t="PLATEFORME"/><Sel value={g.platform||''} onChange={v=>upd('platform',v)}><option value="">Choisir...</option>{PLATS.map(p=><option key={p} value={p}>{p}</option>)}</Sel></div>
+        <div><Lbl t="ETAT"/><Sel value={g.condition||''} onChange={v=>upd('condition',v)}><option value="">Choisir...</option>{CONDS.map(c=><option key={c} value={c}>{c}</option>)}</Sel></div>
+      </div>
+      <Lbl t="NOTES"/><textarea value={g.notes||''} onChange={e=>upd('notes',e.target.value)} placeholder="Notes optionnelles..." style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'9px 12px',color:C.text,fontFamily:'Outfit',fontSize:13,resize:'vertical',minHeight:54,outline:'none',marginBottom:12}}/>
+      <div style={{display:'flex',gap:10}}>
+        <button onClick={save} style={{flex:1,background:C.acc,borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}><IconChk size={15}/> Ajouter au lot</button>
+        <button onClick={onClose} style={{background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Annuler</button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Lot Detail ─── */
 function LotDetail({data,selectedId,navigate,updateData}) {
   const games=data.games||[], lots=data.lots||[];
   const lot=lots.find(l=>l.id===selectedId);
   const [editing,setEditing]=useState(false), [ef,setEf]=useState(null), [confirm,setConfirm]=useState(false);
-  const [showPick,setShowPick]=useState(false), [pickSel,setPickSel]=useState([]);
+  const [addMode,setAddMode]=useState(null), [pickSel,setPickSel]=useState([]);
+  const [creating,setCreating]=useState(false);
   if(!lot) return <div style={{padding:48,textAlign:'center',color:C.muted,fontFamily:'Outfit'}}>Lot introuvable</div>;
   const lotG=games.filter(g=>g.lotId===lot.id), free=games.filter(g=>!g.lotId);
   const p=lP(lot), pc=p>0?C.green:p<0?C.red:C.muted;
   const stC={Vendu:C.green,Reserve:C.blue,'En stock':'#555'};
   const delLot=()=>{updateData(Object.assign({},data,{lots:lots.filter(l=>l.id!==selectedId),games:games.map(g=>g.lotId===selectedId?Object.assign({},g,{lotId:'',status:'En stock'}):g)}));navigate('lots');};
   const remG=gid=>updateData(Object.assign({},data,{games:games.map(g=>g.id===gid?Object.assign({},g,{lotId:'',status:'En stock'}):g)}));
-  const addG=()=>{updateData(Object.assign({},data,{games:games.map(g=>pickSel.includes(g.id)?Object.assign({},g,{lotId:selectedId}):g)}));setShowPick(false);setPickSel([]);};
+  const addG=()=>{updateData(Object.assign({},data,{games:games.map(g=>pickSel.includes(g.id)?Object.assign({},g,{lotId:selectedId}):g)}));setAddMode(null);setPickSel([]);};
   const togP=id=>setPickSel(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
   const startEdit=()=>{setEf({name:lot.name,prixAchat:lot.prixAchat||'',prixVente:lot.prixVente||'',fraisPort:lot.fraisPort||'',tauxFrais:lot.tauxFrais||'',notes:lot.notes||'',status:lot.status||'En stock'});setEditing(true);};
   const saveEdit=()=>{updateData(Object.assign({},data,{lots:lots.map(l=>l.id===selectedId?Object.assign({},l,ef):l)}));setEditing(false);};
@@ -603,17 +664,27 @@ function LotDetail({data,selectedId,navigate,updateData}) {
         </div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <div style={{fontFamily:'Syne,sans-serif',fontSize:16,fontWeight:700,color:C.text}}>Jeux ({lotG.length})</div>
-          <button onClick={()=>{setShowPick(v=>!v);setPickSel([]);}} style={{background:showPick?C.card2:C.acc2,border:'1px solid '+(showPick?C.border:C.acc)+'50',borderRadius:10,padding:'6px 12px',display:'flex',alignItems:'center',gap:6,fontFamily:'Outfit',fontWeight:600,fontSize:12,color:showPick?C.muted:C.acc}}>
-            {showPick?<><IconX size={13}/> Annuler</>:<><IconUPlus size={13}/> Ajouter des jeux</>}
-          </button>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={()=>{setAddMode(addMode==='pick'?null:'pick');setPickSel([]);setCreating(false);}} style={{background:addMode==='pick'?C.card2:C.acc2,border:'1px solid '+(addMode==='pick'?C.border:C.acc)+'50',borderRadius:10,padding:'6px 10px',display:'flex',alignItems:'center',gap:5,fontFamily:'Outfit',fontWeight:600,fontSize:11,color:addMode==='pick'?C.muted:C.acc}}>
+              {addMode==='pick'?<><IconX size={12}/> Annuler</>:<><IconUPlus size={12}/> Existant</>}
+            </button>
+            <button onClick={()=>{setCreating(!creating);setAddMode(null);setPickSel([]);}} style={{background:creating?C.card2:C.acc2,border:'1px solid '+(creating?C.border:C.acc)+'50',borderRadius:10,padding:'6px 10px',display:'flex',alignItems:'center',gap:5,fontFamily:'Outfit',fontWeight:600,fontSize:11,color:creating?C.muted:C.acc}}>
+              {creating?<><IconX size={12}/> Annuler</>:<><IconPlus size={12}/> Nouveau</>}
+            </button>
+          </div>
         </div>
-        {showPick && <div className="fi" style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:14,marginBottom:14}}>
+        {addMode==='pick' && <div className="fi" style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:14,marginBottom:14}}>
           <div style={{fontFamily:'Outfit',fontSize:12,color:C.muted,marginBottom:10}}>{free.length} jeu{free.length!==1?'x':''} disponible{free.length!==1?'s':''}</div>
           <GPicker games={free} selected={pickSel} onToggle={togP}/>
           {free.length>0 && <button onClick={addG} disabled={!pickSel.length} style={{width:'100%',marginTop:12,background:pickSel.length?C.acc:'#2a2a3a',borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:pickSel.length?'#000':C.muted,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
             <IconChk size={15}/> Ajouter {pickSel.length?pickSel.length+' jeu'+(pickSel.length>1?'x':''):''}
           </button>}
         </div>}
+        {creating && <InlineLotGameForm onClose={()=>setCreating(false)} onSave={g=>{
+          const ng=Object.assign({},g,{id:uid(),lotId:selectedId,createdAt:ts()});
+          updateData(Object.assign({},data,{games:[...games,ng]}));
+          setCreating(false);
+        }}/>}
         {!lotG.length && !showPick && <div style={{textAlign:'center',padding:'20px 0',color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:10}}>Aucun jeu - utilisez Ajouter des jeux.</div>}
         {lotG.map(g=><GCard key={g.id} game={Object.assign({},g,{lotId:''})} lots={[]} onClick={()=>navigate('gd',g.id)} right={<button onClick={e=>{e.stopPropagation();remG(g.id);}} style={{padding:8,color:C.red+'99',flexShrink:0}}><IconMinus size={20}/></button>}/>)}
         <Gap h={16}/>
