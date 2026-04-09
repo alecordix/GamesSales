@@ -685,7 +685,7 @@ function LotDetail({data,selectedId,navigate,updateData}) {
           updateData(Object.assign({},data,{games:[...games,ng]}));
           setCreating(false);
         }}/>}
-        {!lotG.length && !showPick && <div style={{textAlign:'center',padding:'20px 0',color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:10}}>Aucun jeu - utilisez Ajouter des jeux.</div>}
+        {!lotG.length && !addMode && !creating && <div style={{textAlign:'center',padding:'20px 0',color:C.muted,fontFamily:'Outfit',fontSize:13,marginBottom:10}}>Aucun jeu dans ce lot. Utilisez les boutons ci-dessus pour en ajouter.</div>}
         {lotG.map(g=><GCard key={g.id} game={Object.assign({},g,{lotId:''})} lots={[]} onClick={()=>navigate('gd',g.id)} right={<button onClick={e=>{e.stopPropagation();remG(g.id);}} style={{padding:8,color:C.red+'99',flexShrink:0}}><IconMinus size={20}/></button>}/>)}
         <Gap h={16}/>
         <button onClick={()=>setConfirm(true)} style={{width:'100%',background:C.red+'14',border:'1px solid '+C.red+'40',borderRadius:12,padding:13,fontFamily:'Outfit',fontWeight:600,fontSize:14,color:C.red,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><IconTrash size={16}/> Supprimer ce lot</button>
