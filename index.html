@@ -266,6 +266,19 @@ async function searchGames(query) {
 }
 
 function hasAnyKey() { return !!(getTGDBKey() || getRawgKey()); }
+
+function detectSellPlatFromUrl(url) {
+  if (!url) return '';
+  var u = url.toLowerCase();
+  if (u.indexOf('leboncoin.fr') >= 0)  return 'LeBonCoin';
+  if (u.indexOf('ebay.fr') >= 0)       return 'eBay';
+  if (u.indexOf('ebay.com') >= 0)      return 'eBay';
+  if (u.indexOf('vinted.fr') >= 0)     return 'Vinted';
+  if (u.indexOf('rakuten.com') >= 0)   return 'Rakuten';
+  if (u.indexOf('rakuten.fr') >= 0)    return 'Rakuten';
+  if (u.indexOf('facebook.com') >= 0)  return 'Facebook';
+  return '';
+}
 function getEbayKey(){ return localStorage.getItem('ebay-key') || ''; }
 function setEbayKey(k){ localStorage.setItem('ebay-key', k); }
 
@@ -416,7 +429,12 @@ function QuickEditBar({game, onSave}) {
       <div style={{marginBottom:8}}>
         <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:3}}>LIEN ANNONCE</div>
         <div style={{display:'flex',gap:6}}>
-          <input value={url} onChange={function(e){setUrl(e.target.value);}} type="url" placeholder="https://..."
+          <input value={url} onChange={function(e){
+              var val = e.target.value;
+              setUrl(val);
+              var detected = detectSellPlatFromUrl(val);
+              if (detected) setSp(detected);
+            }} type="url" placeholder="https://..."
             style={{flex:1,background:C.bg,border:'1px solid '+C.border,borderRadius:7,padding:'6px 8px',color:C.text,fontFamily:'Outfit',fontSize:12,outline:'none'}}/>
           {url.length > 0 && (
             <a href={url} target="_blank" rel="noopener noreferrer"
@@ -1417,7 +1435,16 @@ function GameForm({init, lots, onSave, onBack}) {
           <div style={{marginBottom:20}}>
             <Lbl t="LIEN ANNONCE (eBay, LeBonCoin...)"/>
             <div style={{display:'flex',gap:8}}>
-              <input value={g.listingUrl||''} onChange={function(e){ upd('listingUrl',e.target.value); }}
+              <input value={g.listingUrl||''} onChange={function(e){
+                  var val = e.target.value;
+                  var detectedPlat = detectSellPlatFromUrl(val);
+                  setG(function(prev){
+                    return Object.assign({},prev,{
+                      listingUrl: val,
+                      sellPlatform: detectedPlat || prev.sellPlatform
+                    });
+                  });
+                }}
                 placeholder="https://www.leboncoin.fr/..." type="url"
                 style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}}/>
               {(g.listingUrl||'').length > 0 && (
