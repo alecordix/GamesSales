@@ -139,7 +139,7 @@ function loadData() {
     if (!d.lots) d.lots = [];
     // Migration Sprint1: ajouter sellPlatform si manquant (preserve donnees existantes)
     d.games = d.games.map(function(g){ var g2 = g.sellPlatform !== undefined ? g : Object.assign({}, g, {sellPlatform:''}); var g3 = g2.photo !== undefined ? g2 : Object.assign({}, g2, {photo:''}); return g3.listingUrl !== undefined ? g3 : Object.assign({}, g3, {listingUrl:''}); });
-    d.lots  = d.lots.map(function(l){ return l.sellPlatform !== undefined ? l : Object.assign({}, l, {sellPlatform:''}); });
+    d.lots  = d.lots.map(function(l){ var l2 = l.sellPlatform !== undefined ? l : Object.assign({}, l, {sellPlatform:''}); return l2.listingUrl !== undefined ? l2 : Object.assign({}, l2, {listingUrl:''}); });
     var changed = false;
     for (var i=0; i<SEED_LOTS.length; i++) {
       var sl = SEED_LOTS[i];
@@ -384,8 +384,9 @@ function QuickEditBar({game, onSave}) {
   var [open, setOpen] = useState(false);
   var [vente, setVente] = useState(game.prixVente || '');
   var [status, setStatus] = useState(game.status || 'En stock');
-  var [sp, setSp] = useState(game.sellPlatform || '');
-  function save() { onSave({prixVente:vente, status:status, sellPlatform:sp}); setOpen(false); }
+  var [sp, setSp]   = useState(game.sellPlatform || '');
+  var [url, setUrl] = useState(game.listingUrl || '');
+  function save() { onSave({prixVente:vente, status:status, sellPlatform:sp, listingUrl:url}); setOpen(false); }
   if (!open) return (
     <div onClick={function(e){e.stopPropagation();setOpen(true);}} style={{borderTop:'1px solid '+C.border,padding:'6px 18px',display:'flex',alignItems:'center',gap:6,cursor:'pointer',background:C.card2+'80'}}>
       <IEdit size={12} style={{color:C.muted}}/>
@@ -410,6 +411,19 @@ function QuickEditBar({game, onSave}) {
           <select value={sp} onChange={function(e){setSp(e.target.value);}} style={{width:'100%',background:C.bg,border:'1px solid '+C.border,borderRadius:7,padding:'6px 8px',color:C.text,fontFamily:'Outfit',fontSize:12,outline:'none',appearance:'none'}}>
             {SELL_PLATS.map(function(p){ return <option key={p} value={p}>{p||'Aucune'}</option>; })}
           </select>
+        </div>
+      </div>
+      <div style={{marginBottom:8}}>
+        <div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:3}}>LIEN ANNONCE</div>
+        <div style={{display:'flex',gap:6}}>
+          <input value={url} onChange={function(e){setUrl(e.target.value);}} type="url" placeholder="https://..."
+            style={{flex:1,background:C.bg,border:'1px solid '+C.border,borderRadius:7,padding:'6px 8px',color:C.text,fontFamily:'Outfit',fontSize:12,outline:'none'}}/>
+          {url.length > 0 && (
+            <a href={url} target="_blank" rel="noopener noreferrer"
+              style={{background:C.acc2,border:'1px solid '+C.acc+'50',borderRadius:7,padding:'6px 10px',display:'flex',alignItems:'center',color:C.acc,fontFamily:'Outfit',fontWeight:600,fontSize:12}}>
+              Voir
+            </a>
+          )}
         </div>
       </div>
       <div style={{display:'flex',gap:8}}>
@@ -1399,18 +1413,27 @@ function GameForm({init, lots, onSave, onBack}) {
         <textarea value={g.notes} onChange={function(e){ upd('notes',e.target.value); }} placeholder="Griffures, manquants..."
           style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:72,outline:'none',marginBottom:14}} />
 
-        <Lbl t="LIEN ANNONCE (eBay, LeBonCoin...)"/>
-        <div style={{display:'flex',gap:8,marginBottom:20}}>
-          <input value={g.listingUrl||''} onChange={function(e){ upd('listingUrl',e.target.value); }}
-            placeholder="https://www.leboncoin.fr/..." type="url"
-            style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}}/>
-          {(g.listingUrl||'').length > 0 && (
-            <a href={g.listingUrl} target="_blank" rel="noopener noreferrer"
-              style={{background:C.acc2,border:'1px solid '+C.acc+'50',borderRadius:10,padding:'11px 16px',display:'flex',alignItems:'center',color:C.acc,flexShrink:0,fontFamily:'Outfit',fontWeight:600,fontSize:13}}>
-              Voir
-            </a>
-          )}
-        </div>
+        {!il && (
+          <div style={{marginBottom:20}}>
+            <Lbl t="LIEN ANNONCE (eBay, LeBonCoin...)"/>
+            <div style={{display:'flex',gap:8}}>
+              <input value={g.listingUrl||''} onChange={function(e){ upd('listingUrl',e.target.value); }}
+                placeholder="https://www.leboncoin.fr/..." type="url"
+                style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}}/>
+              {(g.listingUrl||'').length > 0 && (
+                <a href={g.listingUrl} target="_blank" rel="noopener noreferrer"
+                  style={{background:C.acc2,border:'1px solid '+C.acc+'50',borderRadius:10,padding:'11px 16px',display:'flex',alignItems:'center',color:C.acc,flexShrink:0,fontFamily:'Outfit',fontWeight:600,fontSize:13}}>
+                  Voir
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+        {il && (
+          <div style={{background:C.acc2,border:'1px solid '+C.acc+'30',borderRadius:10,padding:'10px 14px',marginBottom:20,fontFamily:'Outfit',fontSize:12,color:C.muted}}>
+            Le lien annonce se gere au niveau du lot
+          </div>
+        )}
 
         <button onClick={save} style={{width:'100%',background:C.acc,borderRadius:14,padding:15,fontFamily:'Outfit',fontWeight:700,fontSize:16,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
           <ICheck size={18} /> {g.id ? 'Enregistrer' : 'Ajouter le jeu'}
@@ -1470,7 +1493,7 @@ function GameDetail({data, selectedId, navigate, updateData}) {
             return <div key={row[0]} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+C.border}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>{row[0]}</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{row[1]}</span></div>;
           })}
           {game.barcode && <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0'}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Code-barre</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:12,color:C.text}}>{game.barcode}</span></div>}
-          {(game.listingUrl||'').length > 0 && (
+          {!il && (game.listingUrl||'').length > 0 && (
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0'}}>
               <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Annonce</span>
               <a href={game.listingUrl} target="_blank" rel="noopener noreferrer"
@@ -1577,7 +1600,7 @@ function LotsScreen({data, navigate, updateData}) {
   var games = data.games || [];
   var lots = data.lots || [];
   var [showF, setShowF] = useState(false);
-  var [form, setForm] = useState({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock'});
+  var [form, setForm] = useState({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock',sellPlatform:'',listingUrl:''});
   function upF(k,v){ setForm(function(p){ return Object.assign({},p,{[k]:v}); }); }
   var free = games.filter(function(g){ return !g.lotId; });
   var [sel, setSel] = useState([]);
@@ -1607,7 +1630,7 @@ function LotsScreen({data, navigate, updateData}) {
     var nl = Object.assign({id:uid(),createdAt:ts()}, form);
     updateData(Object.assign({},data,{lots:[...lots,nl],games:games.map(function(g){ return sel.includes(g.id)?Object.assign({},g,{lotId:nl.id}):g; })}));
     setShowF(false);
-    setForm({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock'});
+    setForm({name:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',notes:'',status:'En stock',sellPlatform:'',listingUrl:''});
     setSel([]);
   }
 
@@ -1654,6 +1677,32 @@ function LotsScreen({data, navigate, updateData}) {
           <Lbl t="NOTES" />
           <textarea value={form.notes} onChange={function(e){ upF('notes',e.target.value); }} placeholder="Description..."
             style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'10px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:54,outline:'none',marginBottom:14}} />
+          <Lbl t="LIEN ANNONCE (eBay, LeBonCoin...)" />
+          <div style={{display:'flex',gap:8,marginBottom:14}}>
+            <input value={form.listingUrl||''} onChange={function(e){ upF('listingUrl',e.target.value); }}
+              placeholder="https://..." type="url"
+              style={{flex:1,background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'10px 12px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}}/>
+            {(form.listingUrl||'').length > 0 && (
+              <a href={form.listingUrl} target="_blank" rel="noopener noreferrer"
+                style={{background:C.acc2,border:'1px solid '+C.acc+'50',borderRadius:10,padding:'10px 14px',display:'flex',alignItems:'center',color:C.acc,flexShrink:0,fontFamily:'Outfit',fontWeight:600,fontSize:13}}>
+                Voir
+              </a>
+            )}
+          </div>
+          <div style={{marginBottom:14}}>
+            <Lbl t="LIEN ANNONCE (eBay, LeBonCoin...)"/>
+            <div style={{display:'flex',gap:8,marginBottom:14}}>
+              <input value={form.listingUrl||''} onChange={function(e){ upF('listingUrl',e.target.value); }}
+                placeholder="https://www.ebay.fr/itm/..." type="url"
+                style={{flex:1,background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'10px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}}/>
+              {(form.listingUrl||'').length > 0 && (
+                <a href={form.listingUrl} target="_blank" rel="noopener noreferrer"
+                  style={{background:C.acc2,border:'1px solid '+C.acc+'50',borderRadius:10,padding:'10px 14px',display:'flex',alignItems:'center',color:C.acc,flexShrink:0,fontFamily:'Outfit',fontWeight:600,fontSize:13}}>
+                  Voir
+                </a>
+              )}
+            </div>
+          </div>
           <div style={{marginBottom:14}}>
             <Lbl t={'JEUX A AJOUTER'+(sel.length?' ('+sel.length+' sel.)':'')} />
             <GPicker games={free} selected={sel} onToggle={togSel} />
@@ -1764,7 +1813,7 @@ function LotDetail({data, selectedId, navigate, updateData}) {
     setAddMode(null);
   }
   function togP(id){ setPickSel(function(p){ return p.includes(id)?p.filter(function(x){ return x!==id; }):[...p,id]; }); }
-  function startEdit(){ setEf({name:lot.name,prixAchat:lot.prixAchat||'',prixVente:lot.prixVente||'',fraisPort:lot.fraisPort||'',tauxFrais:lot.tauxFrais||'',notes:lot.notes||'',status:lot.status||'En stock'}); setEditing(true); }
+  function startEdit(){ setEf({name:lot.name,prixAchat:lot.prixAchat||'',prixVente:lot.prixVente||'',fraisPort:lot.fraisPort||'',tauxFrais:lot.tauxFrais||'',notes:lot.notes||'',status:lot.status||'En stock',sellPlatform:lot.sellPlatform||'',listingUrl:lot.listingUrl||''}); setEditing(true); }
   function saveEdit(){ updateData(Object.assign({},data,{lots:lots.map(function(l){ return l.id===selectedId?Object.assign({},l,ef):l; })})); setEditing(false); }
   function upE(k,v){ setEf(function(p){ return Object.assign({},p,{[k]:v}); }); }
 
@@ -1808,6 +1857,18 @@ function LotDetail({data, selectedId, navigate, updateData}) {
             <Lbl t="NOTES" />
             <textarea value={ef.notes} onChange={function(e){ upE('notes',e.target.value); }} placeholder="Notes..."
               style={{width:'100%',background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'9px 12px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:54,outline:'none',marginBottom:12}} />
+            <Lbl t="LIEN ANNONCE (eBay, LeBonCoin...)" />
+            <div style={{display:'flex',gap:8,marginBottom:12}}>
+              <input value={ef.listingUrl||''} onChange={function(e){ upE('listingUrl',e.target.value); }}
+                placeholder="https://..." type="url"
+                style={{flex:1,background:C.bg,border:'1px solid '+C.border,borderRadius:8,padding:'9px 12px',color:C.text,fontFamily:'Outfit',fontSize:13,outline:'none'}}/>
+              {(ef.listingUrl||'').length > 0 && (
+                <a href={ef.listingUrl} target="_blank" rel="noopener noreferrer"
+                  style={{background:C.acc2,border:'1px solid '+C.acc+'50',borderRadius:8,padding:'9px 14px',display:'flex',alignItems:'center',color:C.acc,flexShrink:0,fontFamily:'Outfit',fontWeight:600,fontSize:12}}>
+                  Voir
+                </a>
+              )}
+            </div>
             <div style={{display:'flex',gap:10}}>
               <button onClick={saveEdit} style={{flex:1,background:C.acc,borderRadius:10,padding:11,fontFamily:'Outfit',fontWeight:700,fontSize:14,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}><ICheck size={15} /> Enregistrer</button>
               <button onClick={function(){ setEditing(false); }} style={{background:C.card,border:'1px solid '+C.border,borderRadius:10,padding:'11px 16px',color:C.muted,fontFamily:'Outfit',fontSize:14}}>Annuler</button>
@@ -1825,6 +1886,15 @@ function LotDetail({data, selectedId, navigate, updateData}) {
             <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Benefice net du lot</span>
             <span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:26,fontWeight:600,color:pc}}>{p>=0?'+':''}{fmt(p)}</span>
           </div>
+          {(lot.listingUrl||'').length > 0 && (
+            <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid '+pc+'20',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Annonce</span>
+              <a href={lot.listingUrl} target="_blank" rel="noopener noreferrer"
+                style={{fontFamily:'Outfit',fontSize:13,color:C.acc,fontWeight:600,textDecoration:'underline'}}>
+                Voir l annonce
+              </a>
+            </div>
+          )}
         </div>
 
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
