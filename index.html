@@ -138,7 +138,7 @@ function loadData() {
     if (!d.games) d.games = [];
     if (!d.lots) d.lots = [];
     // Migration Sprint1: ajouter sellPlatform si manquant (preserve donnees existantes)
-    d.games = d.games.map(function(g){ var g2 = g.sellPlatform !== undefined ? g : Object.assign({}, g, {sellPlatform:''}); return g2.photo !== undefined ? g2 : Object.assign({}, g2, {photo:''}); });
+    d.games = d.games.map(function(g){ var g2 = g.sellPlatform !== undefined ? g : Object.assign({}, g, {sellPlatform:''}); var g3 = g2.photo !== undefined ? g2 : Object.assign({}, g2, {photo:''}); return g3.listingUrl !== undefined ? g3 : Object.assign({}, g3, {listingUrl:''}); });
     d.lots  = d.lots.map(function(l){ return l.sellPlatform !== undefined ? l : Object.assign({}, l, {sellPlatform:''}); });
     var changed = false;
     for (var i=0; i<SEED_LOTS.length; i++) {
@@ -1262,7 +1262,7 @@ function InvScreen({data, navigate, updateData}) {
 }
 // ── Game Form ──────────────────────────────────────────────────────
 function emptyGame() {
-  return {id:'',barcode:'',title:'',platform:'',condition:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:'',notes:'',image:'',createdAt:ts()};
+  return {id:'',barcode:'',title:'',platform:'',condition:'',prixAchat:'',prixVente:'',fraisPort:'',tauxFrais:'',status:'En stock',lotId:'',notes:'',image:'',sellPlatform:'',listingUrl:'',createdAt:ts()};
 }
 
 function GameForm({init, lots, onSave, onBack}) {
@@ -1397,7 +1397,20 @@ function GameForm({init, lots, onSave, onBack}) {
 
         <Lbl t="NOTES" />
         <textarea value={g.notes} onChange={function(e){ upd('notes',e.target.value); }} placeholder="Griffures, manquants..."
-          style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:72,outline:'none',marginBottom:20}} />
+          style={{width:'100%',background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,resize:'vertical',minHeight:72,outline:'none',marginBottom:14}} />
+
+        <Lbl t="LIEN ANNONCE (eBay, LeBonCoin...)"/>
+        <div style={{display:'flex',gap:8,marginBottom:20}}>
+          <input value={g.listingUrl||''} onChange={function(e){ upd('listingUrl',e.target.value); }}
+            placeholder="https://www.leboncoin.fr/..." type="url"
+            style={{flex:1,background:C.card2,border:'1px solid '+C.border,borderRadius:10,padding:'11px 14px',color:C.text,fontFamily:'Outfit',fontSize:14,outline:'none'}}/>
+          {(g.listingUrl||'').length > 0 && (
+            <a href={g.listingUrl} target="_blank" rel="noopener noreferrer"
+              style={{background:C.acc2,border:'1px solid '+C.acc+'50',borderRadius:10,padding:'11px 16px',display:'flex',alignItems:'center',color:C.acc,flexShrink:0,fontFamily:'Outfit',fontWeight:600,fontSize:13}}>
+              Voir
+            </a>
+          )}
+        </div>
 
         <button onClick={save} style={{width:'100%',background:C.acc,borderRadius:14,padding:15,fontFamily:'Outfit',fontWeight:700,fontSize:16,color:'#000',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
           <ICheck size={18} /> {g.id ? 'Enregistrer' : 'Ajouter le jeu'}
@@ -1457,6 +1470,15 @@ function GameDetail({data, selectedId, navigate, updateData}) {
             return <div key={row[0]} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+C.border}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>{row[0]}</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:13,color:C.text}}>{row[1]}</span></div>;
           })}
           {game.barcode && <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0'}}><span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Code-barre</span><span style={{fontFamily:'"JetBrains Mono",monospace',fontSize:12,color:C.text}}>{game.barcode}</span></div>}
+          {(game.listingUrl||'').length > 0 && (
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0'}}>
+              <span style={{fontFamily:'Outfit',fontSize:13,color:C.muted}}>Annonce</span>
+              <a href={game.listingUrl} target="_blank" rel="noopener noreferrer"
+                style={{fontFamily:'Outfit',fontSize:13,color:C.acc,fontWeight:600,textDecoration:'underline'}}>
+                Voir l annonce
+              </a>
+            </div>
+          )}
         </div>
         {game.notes && <div style={{background:C.card2,border:'1px solid '+C.border,borderRadius:14,padding:'12px 14px',marginBottom:14}}><div style={{fontFamily:'Outfit',fontSize:10,color:C.muted,marginBottom:5}}>NOTES</div><div style={{fontFamily:'Outfit',fontSize:14,color:C.text,lineHeight:1.55}}>{game.notes}</div></div>}
         <div style={{display:'flex',gap:10}}>
